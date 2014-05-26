@@ -12,20 +12,34 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
 
+type Source struct {
+	Id        bson.ObjectId     `bson:"_id"`
+	ResultIds []string          `bson:"results"`
+	Files     map[string]string `bson:"files"`
+	Arch      string            `bson:"arch"`
+	Args      string            `bson:"args,omitempty"`
+}
+
 func main() {
 	flag.Parse()
 	startTime := time.Now()
-	query := bson.M{}
 	root, _ := os.Getwd()
 
 	var gccOut, gccErr bytes.Buffer
 	gccCmd := exec.Command("gcc", flag.Args()...)
 	gccCmd.Stderr = &gccErr
 	gccCmd.Stdout = &gccOut
+
+	s := &Source{
+		Arch:  runtime.GOOS + "-" + runtime.GOARCH,
+		Args:  strings.Join(flag.Args(), " "),
+		Files: map[string]string{},
+	}
 
 	if err := filepath.Walk(root, func(path string, f os.FileInfo, err error) error {
 		relPath, _ := filepath.Rel(root, path)
@@ -35,7 +49,7 @@ func main() {
 		}
 
 		content, _ := ioutil.ReadFile(path)
-		query[strings.Replace(relPath, ".", "_", -1)] = fmt.Sprintf("%x", md5.Sum(content))
+		s.Files[strings.Replace(relPath, ".", "_", -1)] = fmt.Sprintf("%x", md5.Sum(content))
 		return nil
 	}); err != nil {
 		fmt.Println("Failed:", err)
@@ -52,9 +66,7 @@ func main() {
 	db := session.DB("bcc-test")
 	c := db.C("sources")
 	fs := db.GridFS("fs")
-
-	result := bson.M{}
-	err = c.Find(query).One(&result)
+	err = c.Find(bson.M{"files": s.Files}).One(&s)
 
 	if err != nil && err.Error() == "not found" {
 		fmt.Println("Result not found in cache. Running gcc (may take a while)...")
@@ -67,7 +79,7 @@ func main() {
 		fmt.Println("gcc has finished. Adding result in cache.")
 
 		sourceId := bson.NewObjectId()
-		query["_id"] = sourceId
+		s.Id = sourceId
 
 		var files []string
 		// insert files that have been created since start
@@ -112,27 +124,28 @@ func main() {
 		}
 
 		// insert
-		query["_targets"] = files
-		if err = c.Insert(query); err != nil {
+		s.ResultIds = files
+		if err = c.Insert(s); err != nil {
 			fmt.Println(err)
 		}
 		return
+	} else if err != nil {
+		fmt.Println(err)
+		return
 	} else {
 		fmt.Println("Found! Writing files from cache instead of running gcc...")
-		resultId := result["_id"].(bson.ObjectId).Hex()
+		resultId := s.Id.Hex()
 		objectIds := []bson.ObjectId{}
-		targets := result["_targets"].([]interface{})
-		for _, id := range targets {
-			strId := id.(string)
-			objectIds = append(objectIds, bson.ObjectIdHex(strId))
+		for _, id := range s.ResultIds {
+			objectIds = append(objectIds, bson.ObjectIdHex(id))
 		}
 
-		targetResult := []bson.M{}
-		if err = fs.Find(bson.M{"_id": bson.M{"$in": objectIds}}).All(&targetResult); err != nil {
+		targetResults := []bson.M{}
+		if err = fs.Find(bson.M{"_id": bson.M{"$in": objectIds}}).All(&targetResults); err != nil {
 			fmt.Println(err)
 			return
 		}
-		for _, f := range targetResult {
+		for _, f := range targetResults {
 			file, err := fs.OpenId(f["_id"])
 			if err != nil {
 				fmt.Println(err)
@@ -162,10 +175,5 @@ func main() {
 			}
 			fmt.Println("Finished writing " + outPath + ".")
 		}
-	}
-
-	if err != nil {
-		fmt.Println(err)
-		return
 	}
 }

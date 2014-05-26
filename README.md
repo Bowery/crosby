@@ -13,3 +13,4 @@ A wrapper around gcc that will look get the result of a gcc call
   ```
 - Support more than just gcc. This would make npm install a hell of a lot faster
 - Better Logging
+- Detect false alarms (files being added). Right now if a source has some of the files with the same md5 sum then it will likely grab the wrong project form the cache.
