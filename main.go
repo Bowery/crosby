@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,20 +23,21 @@ var (
 	fs        *mgo.GridFS
 	startTime time.Time
 	root      string
+	args      []string
 )
 
 type Source struct {
-	Id        bson.ObjectId       `bson:"_id"`
-	ResultIds []bson.ObjectId     `bson:"results"`
-	Files     []map[string]string `bson:"files"`
-	Arch      string              `bson:"arch"`
-	Args      string              `bson:"args,omitempty"`
+	Id        bson.ObjectId     `bson:"_id"`
+	ResultIds []bson.ObjectId   `bson:"results"`
+	Files     map[string]string `bson:"files"`
+	Arch      string            `bson:"arch"`
+	Args      string            `bson:"args,omitempty"`
 }
 
 func init() {
-	flag.Parse()
 	startTime = time.Now()
 	root, _ = os.Getwd()
+	args = os.Args[1:]
 
 	session, err := mgo.Dial("localhost")
 	if err != nil {
@@ -53,7 +53,7 @@ func addToCache(s *Source) {
 	fmt.Println("Result not found in cache. Running gcc (may take a while)...")
 
 	var gccOut, gccErr bytes.Buffer
-	gccCmd := exec.Command("gcc", flag.Args()...)
+	gccCmd := exec.Command("gcc", args...)
 	gccCmd.Stderr = &gccErr
 	gccCmd.Stdout = &gccOut
 
@@ -171,8 +171,8 @@ func main() {
 
 	s := &Source{
 		Arch:  runtime.GOOS + "-" + runtime.GOARCH,
-		Args:  strings.Join(flag.Args(), " "),
-		Files: []map[string]string{map[string]string{}},
+		Args:  strings.Join(args, " "),
+		Files: map[string]string{},
 	}
 
 	if err := filepath.Walk(root, func(path string, f os.FileInfo, err error) error {
@@ -183,7 +183,7 @@ func main() {
 		}
 
 		content, _ := ioutil.ReadFile(path)
-		s.Files[0][strings.Replace(relPath, ".", "_", -1)] = fmt.Sprintf("%x", md5.Sum(content))
+		s.Files[strings.Replace(relPath, ".", "_", -1)] = fmt.Sprintf("%x", md5.Sum(content))
 		return nil
 	}); err != nil {
 		fmt.Println("Failed:", err)
