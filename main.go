@@ -27,11 +27,11 @@ var (
 )
 
 type Source struct {
-	Id        bson.ObjectId     `bson:"_id"`
-	ResultIds []bson.ObjectId   `bson:"results"`
-	Files     map[string]string `bson:"files"`
-	Arch      string            `bson:"arch"`
-	Args      string            `bson:"args,omitempty"`
+	Id        bson.ObjectId       `bson:"_id"`
+	ResultIds []bson.ObjectId     `bson:"results"`
+	Files     []map[string]string `bson:"files"`
+	Arch      string              `bson:"arch"`
+	Args      string              `bson:"args,omitempty"`
 }
 
 func init() {
@@ -172,7 +172,7 @@ func main() {
 	s := &Source{
 		Arch:  runtime.GOOS + "-" + runtime.GOARCH,
 		Args:  strings.Join(flag.Args(), " "),
-		Files: map[string]string{},
+		Files: []map[string]string{map[string]string{}},
 	}
 
 	if err := filepath.Walk(root, func(path string, f os.FileInfo, err error) error {
@@ -183,14 +183,14 @@ func main() {
 		}
 
 		content, _ := ioutil.ReadFile(path)
-		s.Files[strings.Replace(relPath, ".", "_", -1)] = fmt.Sprintf("%x", md5.Sum(content))
+		s.Files[0][strings.Replace(relPath, ".", "_", -1)] = fmt.Sprintf("%x", md5.Sum(content))
 		return nil
 	}); err != nil {
 		fmt.Println("Failed:", err)
 		return
 	}
 
-	err := c.Find(bson.M{"files": s.Files}).One(&s)
+	err := c.Find(bson.M{"files": s.Files, "arch": s.Arch, "args": s.Args}).One(&s)
 
 	if err != nil && err.Error() == "not found" {
 		addToCache(s)
