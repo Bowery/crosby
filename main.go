@@ -42,6 +42,7 @@ func init() {
 	session, err := mgo.Dial("localhost")
 	if err != nil {
 		fmt.Println(err)
+		panic("could not connect to crosby")
 		return
 	}
 	db = session.DB("bcc-test")
@@ -52,16 +53,17 @@ func init() {
 func addToCache(s *Source) {
 	fmt.Println("Result not found in cache. Running gcc (may take a while)...")
 
-	var gccOut, gccErr bytes.Buffer
-	gccCmd := exec.Command("gcc", args...)
-	gccCmd.Stderr = &gccErr
-	gccCmd.Stdout = &gccOut
+	var cmdOut, cmdErr bytes.Buffer
+	fmt.Println(args[0], args[1:])
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stderr = &cmdErr
+	cmd.Stdout = &cmdOut
 
-	err := gccCmd.Run()
-	fmt.Println(gccOut.String())
+	err := cmd.Run()
+	fmt.Println(cmdOut.String())
 	if err != nil {
 		fmt.Println("Running gcc failed:", err)
-		fmt.Println(gccErr.String())
+		fmt.Println(cmdErr.String())
 		return
 	}
 	fmt.Println("gcc has finished. Adding result in cache.")
@@ -168,6 +170,12 @@ func writeFromCache(s *Source) {
 
 func main() {
 	defer session.Close()
+
+	if len(os.Args) <= 1 {
+		fmt.Println("Error: Must Specify Command to Run")
+		fmt.Println("Usage: crosby <command>")
+		return
+	}
 
 	s := &Source{
 		Arch:  runtime.GOOS + "-" + runtime.GOARCH,
