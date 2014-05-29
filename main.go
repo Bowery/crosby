@@ -76,7 +76,7 @@ func addToCache(s *Source) {
 	if err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		relPath, _ := filepath.Rel(root, path)
 		// ignore hidden directories and .
-		if relPath == "." || strings.Contains(relPath, "/.") {
+		if relPath == "." || strings.Contains(relPath, "/.") || info.IsDir() {
 			return nil
 		}
 
@@ -136,12 +136,19 @@ func writeFromCache(s *Source) {
 		}
 
 		outPath := strings.Replace(f["filename"].(string), resultId+":", "", -1)
+
+		if err = os.MkdirAll(filepath.Dir(outPath), os.ModePerm|os.ModeDir); err != nil {
+			fmt.Println(err)
+			return
+		}
+
 		outfile, err := os.Create(outPath)
 		if err != nil {
 			fmt.Println("Failed to create file. Please make sure this program has appropriate permission.")
 			fmt.Println(err)
 			return
 		}
+		defer outfile.Close()
 
 		if _, err = io.Copy(outfile, file); err != nil {
 			fmt.Println("Failed to copy file from cache to your computer. Please make sure this program has appropriate permission.")
