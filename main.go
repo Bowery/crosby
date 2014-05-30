@@ -208,14 +208,26 @@ func main() {
 	query["arch"] = s.Arch
 	query["args"] = s.Args
 
-	err := c.Find(query).One(&s)
+	results := []Source{}
 
-	if err != nil && err.Error() == "not found" {
+
+	err := c.Find(query).All(&results)
+
+	notFound := err != nil && err.Error() == "not found"
+	for _, result := range results {
+		if len(result.Files) == len(s.Files) {
+			s = &result
+			notFound = false
+			break
+		}
+	}
+
+	if notFound {
 		addToCache(s)
-	} else if err != nil {
+	} else if err == nil {
+		writeFromCache(s)
+	} else {
 		fmt.Println("Error connecting to database. Please make sure you are connected to the internet and try again.")
 		fmt.Println(err)
-	} else {
-		writeFromCache(s)
 	}
 }
