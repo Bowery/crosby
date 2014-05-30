@@ -209,12 +209,11 @@ func main() {
 	query["args"] = s.Args
 
 	results := []Source{}
-
-
 	err := c.Find(query).All(&results)
+	notFound := err != nil || len(results) == 0
 
-	notFound := err != nil && err.Error() == "not found"
 	for _, result := range results {
+		fmt.Println("len files", len(result.Files), len(s.Files))
 		if len(result.Files) == len(s.Files) {
 			s = &result
 			notFound = false
