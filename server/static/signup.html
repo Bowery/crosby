@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>Crosby - Signup</title>
+    <script type="text/javascript" src="https://js.stripe.com/v2/" async></script>
+  </head>
+  <body>
+      <form action="/session" method="POST">
+        <label for="name">Name</label>
+        <input type="text" name="name">
+        <label for="password">Password</label>
+        <input type="password" name="password">
+        <script
+          src="https://checkout.stripe.com/v2/checkout.js"
+          class="stripe-button"
+          data-key="pk_test_m8TQEAkYWSc1jZh7czo8xhA7"
+          data-image="http://bowery.io/static/img/logo.png"
+          data-name="Crosby by Bowery, Inc."
+          data-description="Annual License"
+          data-amount="2500">
+        </script>
+      </form>
+  </body>
+<html>
