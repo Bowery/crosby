@@ -65,5 +65,5 @@ if [ $RESULT -ne 0 ]; then
     mongod &
 fi
 
-echo "--> Starting Server..."
+echo "--> Server is Running on Port 3000"
 ../bin/server
