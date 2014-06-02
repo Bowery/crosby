@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"code.google.com/p/go-uuid/uuid"
 	"crypto/md5"
+	"encoding/gob"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,7 +26,17 @@ var (
 	startTime time.Time
 	root      string
 	args      []string
+	dbHost    string
+	apiHost   string
+	homeVar   string
 )
+
+type User struct {
+	Id      string
+	Name    string
+	Email   string
+	Expires time.Time
+}
 
 type Source struct {
 	Id        bson.ObjectId     `bson:"_id"`
@@ -38,8 +50,10 @@ func init() {
 	startTime = time.Now()
 	root, _ = os.Getwd()
 	args = os.Args[1:]
+	dbHost = "localhost"
+	apiHost = "localhost:3000"
 
-	session, err := mgo.Dial("localhost")
+	session, err := mgo.Dial(dbHost)
 	if err != nil {
 		fmt.Println(err)
 		panic("could not connect to crosby")
@@ -48,9 +62,83 @@ func init() {
 	db = session.DB("bcc-test")
 	c = db.C("sources")
 	fs = db.GridFS("fs")
+
+	homeVar = "HOME"
+	if runtime.GOOS == "windows" {
+		homeVar = "USERPROFILE"
+	}
 }
 
-func addToCache(s *Source) {
+func CurrentUser() (*User, error) {
+	user := User{}
+	configPath := filepath.Join(os.Getenv(homeVar), ".crosbyconf")
+
+	// ghetto version of "touch"
+	file, err := os.OpenFile(configPath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0664)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	if err = gob.NewDecoder(file).Decode(&user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+//
+// Parses name and email and creates a new user.
+// Will also check server to see if the user exists and get expiration time.
+//
+func CreateUser() (*User, error) {
+	// Get name and email from git if possible
+	// generate id
+	name, _ := exec.Command("git", "config", "user.name").Output()
+	email, _ := exec.Command("git", "config", "user.email").Output()
+	u := &User{
+		Id:      uuid.New(),
+		Name:    string(name[:len(name)-1]),
+		Email:   string(email[:len(email)-1]),
+		Expires: time.Now().Add(time.Hour * 24 * 30),
+	}
+
+	var raw bytes.Buffer
+	if err := gob.NewEncoder(&raw).Encode(u); err != nil {
+		return u, err
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(os.Getenv(homeVar), ".crosbyconf"), raw.Bytes(), os.ModePerm); err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+//
+// If the session has expired
+//
+func ValidateSession() error {
+	user, err := CurrentUser()
+	fmt.Println("$$$$$$$", err)
+	if err == io.EOF {
+		user, err = CreateUser()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if user.Expires.After(time.Now()) {
+		// TODO (thebyrd) check api to see if this has changed (they've paid the bill or signed up)
+		fmt.Println("Hi " + user.Name + ",")
+		fmt.Println("Your free trial has expired. Please register at crosby.io/signup.")
+	}
+
+	fmt.Println(user.Name, " (", user.Email, ") expires in", user.Expires)
+	return nil
+}
+
+func AddToCache(s *Source) {
 	fmt.Println("Result not found in cache. Running command (may take a while)...")
 
 	var cmdOut, cmdErr bytes.Buffer
@@ -116,7 +204,7 @@ func addToCache(s *Source) {
 	return
 }
 
-func writeFromCache(s *Source) {
+func WriteFromCache(s *Source) {
 	fmt.Println("Writing files from cache instead of running command...")
 	resultId := s.Id.Hex()
 	targetResults := []bson.M{}
@@ -180,6 +268,11 @@ func main() {
 		return
 	}
 
+	if err := ValidateSession(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	s := &Source{
 		Arch:  runtime.GOOS + "-" + runtime.GOARCH,
 		Args:  strings.Join(args, " "),
@@ -203,7 +296,7 @@ func main() {
 
 	query := bson.M{}
 	for key := range s.Files {
-		query["files." + key] = s.Files[key]
+		query["files."+key] = s.Files[key]
 	}
 	query["arch"] = s.Arch
 	query["args"] = s.Args
@@ -213,7 +306,6 @@ func main() {
 	notFound := err != nil || len(results) == 0
 
 	for _, result := range results {
-		fmt.Println("len files", len(result.Files), len(s.Files))
 		if len(result.Files) == len(s.Files) {
 			s = &result
 			notFound = false
@@ -222,9 +314,9 @@ func main() {
 	}
 
 	if notFound {
-		addToCache(s)
+		AddToCache(s)
 	} else if err == nil {
-		writeFromCache(s)
+		WriteFromCache(s)
 	} else {
 		fmt.Println("Error connecting to database. Please make sure you are connected to the internet and try again.")
 		fmt.Println(err)
