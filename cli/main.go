@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,7 +36,8 @@ type User struct {
 	Id      string
 	Name    string
 	Email   string
-	Expires time.Time
+	Password string
+	Expiration time.Time
 }
 
 type Source struct {
@@ -59,7 +61,7 @@ func init() {
 		panic("could not connect to crosby")
 		return
 	}
-	db = session.DB("bcc-test")
+	db = session.DB("crosby")
 	c = db.C("sources")
 	fs = db.GridFS("fs")
 
@@ -95,11 +97,21 @@ func CreateUser() (*User, error) {
 	// generate id
 	name, _ := exec.Command("git", "config", "user.name").Output()
 	email, _ := exec.Command("git", "config", "user.email").Output()
+
+	var strName string
+	if len(name) > 0 {
+		strName = name[:len(name)-1]
+	}
+
+	var strEmail string
+	if len(email) > 0 {
+		strEmail = email[:len(email)-1]
+	}
+
 	u := &User{
 		Id:      uuid.New(),
-		Name:    string(name[:len(name)-1]),
-		Email:   string(email[:len(email)-1]),
-		Expires: time.Now().Add(time.Hour * 24 * 30),
+		Name:    strName,
+		Email:   strEmail,
 	}
 
 	var raw bytes.Buffer
@@ -128,13 +140,13 @@ func ValidateSession() error {
 		return err
 	}
 
-	if user.Expires.After(time.Now()) {
+	if user.Expiration.After(time.Now()) {
 		// TODO (thebyrd) check api to see if this has changed (they've paid the bill or signed up)
 		fmt.Println("Hi " + user.Name + ",")
 		fmt.Println("Your free trial has expired. Please register at crosby.io/signup.")
 	}
 
-	fmt.Println(user.Name, " (", user.Email, ") expires in", user.Expires)
+	fmt.Println(user.Name, " (", user.Email, ") expires in", user.Expiration)
 	return nil
 }
 

@@ -43,25 +43,37 @@ func HomeHandler(rw http.ResponseWriter, req *http.Request) {
 func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 	res := NewResponder(rw, req)
 	err := req.ParseForm()
-
-	// Simple Validation
-	if err != nil || req.PostFormValue("stripeToken") == "" || req.PostFormValue("stripeEmail") == "" || req.PostFormValue("password") == "" {
+	if err != nil {
 		res.Body["status"] = "failed"
-		var strErr string
-		if err == nil {
-			strErr = "Missing Required Field"
-		} else {
-			strErr = err.Error()
-		}
-		res.Body["error"] = strErr
+		res.Body["error"] = err.Error()
 		res.Send(http.StatusBadRequest)
 		return
 	}
 
+	name := req.PostFormValue("name")
+	email := req.PostFormValue("stripeEmail")
+	if email == "" {
+		email = req.PostFormValue("email")
+	}
+
 	u := &User{
-		Name:       req.PostFormValue("name"),
-		Email:      req.PostFormValue("stripeEmail"),
-		Expiration: time.Now(),
+		Name:       name,
+		Email:      email,
+		Expiration: time.Now().Add(time.Hour * 24 * 30),
+	}
+
+	// Silent Signup from cli and not signup form. Will not charge them, but will give them a free month
+	if req.PostFormValue("stripeToken") == "" || req.PostFormValue("stripeEmail") == "" || req.PostFormValue("password") == "" {
+		if err := u.Save(); err != nil {
+			res.Body["status"] = "failed"
+			res.Body["err"] = err.Error()
+			res.Send(http.StatusBadRequest)
+			return
+		}
+		res.Body["status"] = "created"
+		res.Body["user"] = u
+		res.Send(http.StatusOK)
+		return
 	}
 
 	// Hash Password
