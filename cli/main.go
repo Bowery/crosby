@@ -176,7 +176,6 @@ func ValidateSession() error {
 		return err
 	}
 
-	fmt.Println("user id:", user.ID)
 	res, err := http.Get("http://" + apiHost + "/session/" + user.ID)
 	if err != nil {
 		return err
