@@ -16,13 +16,13 @@ func init() {
 }
 
 type User struct {
-	ID          string
-	Name        string
-	Email       string
-	Password    string
-	Salt        string
-	StripeToken string
-	Expiration  time.Time
+	ID          string    `json:"id"`
+	Name        string    `json:"name,omitempty"`
+	Email       string    `json:"email,omitempty"`
+	Password    string    `json:"password,omitempty"`
+	Salt        string    `json:"salt,omitempty"`
+	StripeToken string    `json:"stripeToken,omitempty"`
+	Expiration  time.Time `json:"expiration,omitempty"`
 }
 
 func GetUser(id string) (*User, error) {

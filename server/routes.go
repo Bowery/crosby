@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -152,7 +153,10 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 // to charge them again. It is called everytime crosby is run.
 func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 	res := NewResponder(rw, req)
-	u, err := GetUser(mux.Vars(req)["id"])
+
+	id := mux.Vars(req)["id"]
+	fmt.Println("Getting user by id", id)
+	u, err := GetUser(id)
 	if err != nil {
 		res.Body["status"] = "failed"
 		res.Body["error"] = err.Error()
@@ -160,7 +164,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if u.Expiration.Before(time.Now()) {
+	if u.Expiration.After(time.Now()) {
 		res.Body["status"] = "found"
 		res.Body["user"] = u
 		res.Send(http.StatusOK)
