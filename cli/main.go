@@ -2,14 +2,17 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/go-uuid/uuid"
 	"crypto/md5"
 	"encoding/gob"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,11 +34,20 @@ var (
 	homeVar   string
 )
 
+type Session struct {
+	User   User   `json:"user,omitempty"`
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+}
+
 type User struct {
-	Id      string
-	Name    string
-	Email   string
-	Expires time.Time
+	ID          string    `json:"id"`
+	Name        string    `json:"name,omitempty"`
+	Email       string    `json:"email,omitempty"`
+	Password    string    `json:"password,omitempty"`
+	Salt        string    `json:"salt,omitempty"`
+	StripeToken string    `json:"stripeToken,omitempty"`
+	Expiration  time.Time `json:"expiration,omitempty"`
 }
 
 type Source struct {
@@ -59,7 +71,7 @@ func init() {
 		panic("could not connect to crosby")
 		return
 	}
-	db = session.DB("bcc-test")
+	db = session.DB("crosby")
 	c = db.C("sources")
 	fs = db.GridFS("fs")
 
@@ -95,12 +107,49 @@ func CreateUser() (*User, error) {
 	// generate id
 	name, _ := exec.Command("git", "config", "user.name").Output()
 	email, _ := exec.Command("git", "config", "user.email").Output()
-	u := &User{
-		Id:      uuid.New(),
-		Name:    string(name[:len(name)-1]),
-		Email:   string(email[:len(email)-1]),
-		Expires: time.Now().Add(time.Hour * 24 * 30),
+
+	var strName string
+	if len(name) > 0 {
+		strName = string(name[:len(name)-1])
 	}
+
+	var strEmail string
+	if len(email) > 0 {
+		strEmail = string(email[:len(email)-1])
+	}
+
+	u := &User{
+		Name:  strName,
+		Email: strEmail,
+	}
+
+	res, err := http.PostForm("http://"+apiHost+"/session",
+		url.Values{
+			"name":  {u.Name},
+			"email": {u.Email},
+		})
+	if err != nil {
+		return u, err
+	}
+
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return u, err
+	}
+
+	s := &Session{}
+	if err := json.Unmarshal(body, s); err != nil {
+		return u, err
+	}
+
+	if s.Status == "failed" {
+		return u, errors.New(s.Error)
+	}
+
+	// So that the server assigned ID is persisted
+	u = &s.User
 
 	var raw bytes.Buffer
 	if err := gob.NewEncoder(&raw).Encode(u); err != nil {
@@ -119,7 +168,6 @@ func CreateUser() (*User, error) {
 //
 func ValidateSession() error {
 	user, err := CurrentUser()
-	fmt.Println("$$$$$$$", err)
 	if err == io.EOF {
 		user, err = CreateUser()
 	}
@@ -128,13 +176,42 @@ func ValidateSession() error {
 		return err
 	}
 
-	if user.Expires.After(time.Now()) {
-		// TODO (thebyrd) check api to see if this has changed (they've paid the bill or signed up)
-		fmt.Println("Hi " + user.Name + ",")
-		fmt.Println("Your free trial has expired. Please register at crosby.io/signup.")
+	fmt.Println("user id:", user.ID)
+	res, err := http.Get("http://" + apiHost + "/session/" + user.ID)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
 	}
 
-	fmt.Println(user.Name, " (", user.Email, ") expires in", user.Expires)
+	s := &Session{}
+	if err := json.Unmarshal(body, s); err != nil {
+		return err
+	}
+
+	if s.Status == "failed" {
+		return errors.New(s.Error)
+	}
+
+	if s.Status == "expired" {
+		fmt.Println("Hi", s.User.Name, "!")
+		fmt.Println("Your free trial has expired. Please register at http://crosby.io/signup")
+		fmt.Println("Your Account Number is", s.User.ID)
+		return errors.New("You must register to continue using Crosby.")
+	}
+
+	// Update config file incase something has changed server side
+	go func() {
+		if s.Status == "found" {
+			var raw bytes.Buffer
+			gob.NewEncoder(&raw).Encode(s.User)
+			ioutil.WriteFile(filepath.Join(os.Getenv(homeVar), ".crosbyconf"), raw.Bytes(), os.ModePerm)
+		}
+	}()
 	return nil
 }
 

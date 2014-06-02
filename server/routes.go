@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -43,26 +44,57 @@ func HomeHandler(rw http.ResponseWriter, req *http.Request) {
 func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 	res := NewResponder(rw, req)
 	err := req.ParseForm()
-
-	// Simple Validation
-	if err != nil || req.PostFormValue("stripeToken") == "" || req.PostFormValue("stripeEmail") == "" || req.PostFormValue("password") == "" {
+	if err != nil {
 		res.Body["status"] = "failed"
-		var strErr string
-		if err == nil {
-			strErr = "Missing Required Field"
-		} else {
-			strErr = err.Error()
-		}
-		res.Body["error"] = strErr
+		res.Body["error"] = err.Error()
 		res.Send(http.StatusBadRequest)
 		return
 	}
 
-	u := &User{
-		Name:       req.PostFormValue("name"),
-		Email:      req.PostFormValue("stripeEmail"),
-		Expiration: time.Now(),
+	name := req.PostFormValue("name")
+	email := req.PostFormValue("stripeEmail")
+	if email == "" {
+		email = req.PostFormValue("email")
 	}
+
+	u := &User{
+		Name:       name,
+		Email:      email,
+		Expiration: time.Now().Add(time.Hour * 24 * 30),
+	}
+
+	// Silent Signup from cli and not signup form. Will not charge them, but will give them a free month
+	if req.PostFormValue("stripeToken") == "" || req.PostFormValue("stripeEmail") == "" || req.PostFormValue("password") == "" {
+		if err := u.Save(); err != nil {
+			res.Body["status"] = "failed"
+			res.Body["err"] = err.Error()
+			res.Send(http.StatusBadRequest)
+			return
+		}
+		res.Body["status"] = "created"
+		res.Body["user"] = u
+		res.Send(http.StatusOK)
+		return
+	}
+
+	// Use Account Number (Id) to get user
+	id := req.PostFormValue("id")
+	if id == "" {
+		res.Body["status"] = "failed"
+		res.Body["err"] = "Missing required field: id"
+		res.Send(http.StatusBadRequest)
+		return
+	}
+	u, err = GetUser(id)
+	if err != nil {
+		res.Body["status"] = "failed"
+		res.Body["err"] = err.Error()
+		res.Send(http.StatusBadRequest)
+		return
+	}
+	u.Name = name
+	u.Email = email
+	u.Expiration = time.Now().Add(time.Hour * 24 * 30)
 
 	// Hash Password
 	u.Salt, err = HashToken()
@@ -121,7 +153,10 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 // to charge them again. It is called everytime crosby is run.
 func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 	res := NewResponder(rw, req)
-	u, err := GetUser(mux.Vars(req)["id"])
+
+	id := mux.Vars(req)["id"]
+	fmt.Println("Getting user by id", id)
+	u, err := GetUser(id)
 	if err != nil {
 		res.Body["status"] = "failed"
 		res.Body["error"] = err.Error()
@@ -129,7 +164,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if u.Expiration.Before(time.Now()) {
+	if u.Expiration.After(time.Now()) {
 		res.Body["status"] = "found"
 		res.Body["user"] = u
 		res.Send(http.StatusOK)
