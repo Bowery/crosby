@@ -76,6 +76,25 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Use Account Number (Id) to get user
+	id := req.PostFormValue("id")
+	if id == "" {
+		res.Body["status"] = "failed"
+		res.Body["err"] = "Missing required field: id"
+		res.Send(http.StatusBadRequest)
+		return
+	}
+	u, err = GetUser(id)
+	if err != nil {
+		res.Body["status"] = "failed"
+		res.Body["err"] = err.Error()
+		res.Send(http.StatusBadRequest)
+		return
+	}
+	u.Name = name
+	u.Email = email
+	u.Expiration = time.Now().Add(time.Hour * 24 * 30)
+
 	// Hash Password
 	u.Salt, err = HashToken()
 	if err != nil {

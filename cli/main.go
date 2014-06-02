@@ -32,12 +32,20 @@ var (
 	homeVar   string
 )
 
+type Session struct {
+	User User
+	Status string
+	Error string
+}
+
 type User struct {
-	Id      string
-	Name    string
-	Email   string
-	Password string
-	Expiration time.Time
+	ID          string
+	Name        string
+	Email       string
+	Password    string
+	Salt        string
+	StripeToken string
+	Expiration  time.Time
 }
 
 type Source struct {
@@ -109,9 +117,9 @@ func CreateUser() (*User, error) {
 	}
 
 	u := &User{
-		Id:      uuid.New(),
-		Name:    strName,
-		Email:   strEmail,
+		ID: uuid.New(),
+		Name:  strName,
+		Email: strEmail,
 	}
 
 	var raw bytes.Buffer
@@ -131,7 +139,6 @@ func CreateUser() (*User, error) {
 //
 func ValidateSession() error {
 	user, err := CurrentUser()
-	fmt.Println("$$$$$$$", err)
 	if err == io.EOF {
 		user, err = CreateUser()
 	}
@@ -140,13 +147,40 @@ func ValidateSession() error {
 		return err
 	}
 
-	if user.Expiration.After(time.Now()) {
-		// TODO (thebyrd) check api to see if this has changed (they've paid the bill or signed up)
-		fmt.Println("Hi " + user.Name + ",")
-		fmt.Println("Your free trial has expired. Please register at crosby.io/signup.")
+	res, err := http.Get(apiHost + "/session/" + user.ID)
+	if err != nil {
+		return err
 	}
 
-	fmt.Println(user.Name, " (", user.Email, ") expires in", user.Expiration)
+	s := &Session{}
+
+	if err := json.Unmarshal(res.Body, s); err != nil {
+		return err
+	}
+
+	if s.Status == "failed" || s.User == nil {
+		return error.New(s.Error)
+	}
+
+	if s.Status == "expired" {
+		fmt.Println("Hi ", s.User.Name, "!")
+		fmt.Println("Your free trial has expired. Please register at http://crosby.io/signup")
+		fmt.Println("Your Account Number is", s.User.ID)
+		return nil
+	}
+
+	// Update config file incase something has changed server side
+	if s.Status == "found" {
+		var raw bytes.Buffer
+		if err := gob.NewEncoder(&raw).Encode(s.User); err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(os.Getenv(homeVar), ".crosbyconf"), raw.Bytes(), os.ModePerm); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
