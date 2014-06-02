@@ -47,7 +47,7 @@ go build \
 cp ../bin/crosby${EXTENSION} ${GOPATHSINGLE}/bin
 
 # Start Server
-echo "--> Starting Server..."
+echo "--> Building Server..."
 cd "${DIR}/server"
 go build \
     -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
@@ -55,4 +55,15 @@ go build \
     -o ../bin/server${EXTENSION}
 cp ../bin/server${EXTENSION} ${GOPATHSINGLE}/bin
 
+echo "--> Checking that Mongo is Up"
+mongo --quiet --eval "'Mongo is Up!'"  # do a simple harmless command of some sort
+
+RESULT=$?   # returns 0 if mongo eval succeeds
+
+if [ $RESULT -ne 0 ]; then
+    echo "Starting MongoDB..."
+    mongod &
+fi
+
+echo "--> Starting Server..."
 ../bin/server
