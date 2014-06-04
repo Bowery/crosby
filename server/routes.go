@@ -5,10 +5,7 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/bradrydzewski/go.stripe"
@@ -41,11 +38,6 @@ func init() {
 
 // GET /, Upload new service.
 func HomeHandler(rw http.ResponseWriter, req *http.Request) {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(dir)
 	if err := RenderTemplate(rw, "home", map[string]string{"name": "Crosby"}); err != nil {
 		panic(err)
 	}
