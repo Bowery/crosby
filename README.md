@@ -21,3 +21,6 @@ Crosby only analyses files in the current working directory. Commands that alter
 
 ## Development
 `make` will compile the cli and run the server on port 3000. Feel free to use it with your favorite file watcher.
+
+## TODO
+- Signup result needs to render html and not json

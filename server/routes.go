@@ -26,7 +26,8 @@ var Routes = []*Route{
 	&Route{"/session", []string{"POST"}, CreateSessionHandler},
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
-	&Route{"/test", []string{"POST"}, TestHandler},
+	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
+	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP},
 }
 
 func init() {
@@ -44,8 +45,7 @@ func HomeHandler(rw http.ResponseWriter, req *http.Request) {
 // POST /session, Creates a new user and charges them for the first year.
 func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 	res := NewResponder(rw, req)
-	err := req.ParseForm()
-	if err != nil {
+	if err := req.ParseForm(); err != nil {
 		res.Body["status"] = "failed"
 		res.Body["error"] = err.Error()
 		res.Send(http.StatusBadRequest)
@@ -86,7 +86,7 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Send(http.StatusBadRequest)
 		return
 	}
-	u, err = GetUser(id)
+	u, err := GetUser(id)
 	if err != nil {
 		res.Body["status"] = "failed"
 		res.Body["err"] = err.Error()
@@ -142,6 +142,11 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Body["status"] = "failed"
 		res.Body["error"] = err.Error()
 		res.Send(http.StatusBadRequest)
+		return
+	}
+
+	if req.PostFormValue("html") != "" {
+		http.Redirect(rw, req, "/thanks!", 302)
 		return
 	}
 
@@ -213,16 +218,7 @@ func SignUpHandler(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, "static/signup.html")
 }
 
-// GET /static/{folder}/{file}, Sends a file from the static directory
-func StaticHandler(res http.ResponseWriter, req *http.Request) {
-	file := mux.Vars(req)["file"]
-	folder := mux.Vars(req)["folder"]
-
-	path := folder
-	if file != "" {
-		path = path + "/" + file
-	}
-
-	fmt.Println("$$$$$", path)
-
+// Get /thanks!, Renders a thank you/confirmation message stored in static/thanks.html
+func ThanksHandler(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, "static/thanks.html")
 }
