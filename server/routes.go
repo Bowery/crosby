@@ -26,6 +26,7 @@ var Routes = []*Route{
 	&Route{"/session", []string{"POST"}, CreateSessionHandler},
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
+	&Route{"/test", []string{"POST"}, TestHandler},
 }
 
 func init() {
@@ -210,4 +211,18 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 // GET /signup, Renders signup find. Will also handle billing
 func SignUpHandler(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, "static/signup.html")
+}
+
+// GET /static/{folder}/{file}, Sends a file from the static directory
+func StaticHandler(res http.ResponseWriter, req *http.Request) {
+	file := mux.Vars(req)["file"]
+	folder := mux.Vars(req)["folder"]
+
+	path := folder
+	if file != "" {
+		path = path + "/" + file
+	}
+
+	fmt.Println("$$$$$", path)
+
 }

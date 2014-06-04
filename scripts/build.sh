@@ -56,14 +56,22 @@ go build \
 cp ../bin/server${EXTENSION} ${GOPATHSINGLE}/bin
 
 echo "--> Checking that Mongo is Up"
-mongo --quiet --eval "'Mongo is Up!'"  # do a simple harmless command of some sort
-
+ps -A | grep [m]ongod
 RESULT=$?   # returns 0 if mongo eval succeeds
-
 if [ $RESULT -ne 0 ]; then
-    echo "Starting MongoDB..."
+    echo "--> Starting MongoDB..."
     mongod &
 fi
+
+echo "--> Compiling Assets with Myth"
+which myth > /dev/null
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+    echo "--> Installing Myth first."
+    sudo npm install -g myth
+fi
+myth static/style.css static/out.css
+
 
 echo "--> Server is Running on Port 3000"
 ../bin/server
