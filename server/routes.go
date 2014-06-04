@@ -4,11 +4,14 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
-	"html/template"
-	"net/http"
-	"time"
 )
 
 // 32 MB, same as http.
@@ -37,6 +40,8 @@ func init() {
 
 // GET /, Upload new service.
 func HomeHandler(rw http.ResponseWriter, req *http.Request) {
+	wd, _ := os.Getwd()
+	log.Println(wd)
 	if err := RenderTemplate(rw, "home", map[string]string{"name": "Crosby"}); err != nil {
 		panic(err)
 	}

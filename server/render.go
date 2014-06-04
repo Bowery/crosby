@@ -6,8 +6,6 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"log"
-	"os"
 )
 
 var TEMPLATE_DIR string = "static"
@@ -18,8 +16,6 @@ func execute(name string, data interface{}) (*bytes.Buffer, error) {
 	tmplName := name + "-partial"
 
 	t := template.New(tmplName)
-	wd, _ := os.Getwd()
-	log.Println(wd)
 	path := TEMPLATE_DIR + "/" + name + ".html"
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
