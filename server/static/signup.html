@@ -1,25 +1,53 @@
 <html>
   <head>
     <title>Crosby - Signup</title>
+    <link rel="stylesheet" type="text/css" href="/static/reset.css">
+    <link rel="stylesheet" type="text/css" href="/static/out.css">
+
     <script type="text/javascript" src="https://js.stripe.com/v2/" async></script>
+    <script type="text/javascript" src="/static/signup.js" async></script>
   </head>
   <body>
-      <form action="/session" method="POST">
-        <label for="id">Account Number</label>
-        <input type="text" name="id" id="id" required>
-        <label for="name">Name</label>
-        <input type="text" name="name" required>
-        <label for="password">Password</label>
-        <input type="password" name="password" required>
-        <script
-          src="https://checkout.stripe.com/v2/checkout.js"
-          class="stripe-button"
-          data-key="pk_test_m8TQEAkYWSc1jZh7czo8xhA7"
-          data-image="http://bowery.io/static/img/logo.png"
-          data-name="Crosby by Bowery, Inc."
-          data-description="Annual License"
-          data-amount="2500">
-        </script>
-      </form>
+    <div class="navigation">
+      <ul class="navigation-inner">
+        <li class="navigation-item">
+          <span class="logo small"></span>
+        </li>
+        <li class="navigation-item">
+          <a href="">People</a>
+        </li>
+        <li class="navigation-item">
+          <a href="">Images</a>
+        </li>
+      </ul>
+    </div>
+    <div class="container">
+      <h1>Crosby Signup</h1>
+      <div class="group">
+        <form action="/session" method="POST" class="form">
+          <div class="form-group">
+            <label for="account">Account Number</label>
+            <input type="text" name="id" id="account" class="text-input" required>
+          </div>
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" name="name" class="text-input" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" class="text-input" required>
+          </div>
+          <script
+            src="https://checkout.stripe.com/v2/checkout.js"
+            class="stripe-button"
+            data-key="pk_test_m8TQEAkYWSc1jZh7czo8xhA7"
+            data-image="http://bowery.io/static/img/logo.png"
+            data-name="Crosby by Bowery, Inc."
+            data-description="Annual License"
+            data-amount="2500">
+          </script>
+        </form>
+      </div>
+    </div>
   </body>
 <html>
