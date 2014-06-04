@@ -16,11 +16,10 @@ var TEMPLATE_DIR string = "static"
 func execute(name string, data interface{}) (*bytes.Buffer, error) {
 	fmt.Println("called execute", name, data)
 
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	tmplName := name + "-partial"
 
 	t := template.New(tmplName)
-	path := dir + "/" + TEMPLATE_DIR + "/" + name + ".html"
+	path := TEMPLATE_DIR + "/" + name + ".html"
 	log.Println(path)
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -43,6 +42,7 @@ func execute(name string, data interface{}) (*bytes.Buffer, error) {
 }
 
 func RenderTemplate(wr io.Writer, name string, data interface{}) error {
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	tmpl := template.New(name).Funcs(template.FuncMap{
 		"yield": func() (template.HTML, error) {
 			buf, err := execute(name, data)
