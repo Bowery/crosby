@@ -32,7 +32,7 @@ var Routes = []*Route{
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
-	&Route{"/static/{rest}", []string{"GET"}, http.FileServer(http.Dir("static")).ServeHTTP},
+	&Route{"/static/{rest}", []string{"GET"}, http.FileServer(http.Dir(cwd + "static")).ServeHTTP},
 }
 
 func init() {
