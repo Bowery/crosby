@@ -52,6 +52,7 @@ func RenderTemplate(wr io.Writer, name string, data interface{}) error {
 		},
 	})
 
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	layoutPath := dir + "/" + TEMPLATE_DIR + "/layout.html"
 	buf, err := ioutil.ReadFile(layoutPath)
 	if err != nil {
