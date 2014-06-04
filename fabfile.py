@@ -12,13 +12,12 @@ env.password = 'java$cript'
 
 def restart_crosby():
   with cd('/home/ubuntu/gocode/src/crosby'):
-    # run('git pull')
+    run('git pull')
     with cd('server'):
       sudo('GOPATH=/home/ubuntu/gocode go get -d')
       sudo('GOPATH=/home/ubuntu/gocode go build')
       run('myth static/style.css static/out.css')
 
-    sudo('mv ../../bin/server /usr/local/bin/crosby')
     sudo('cp -f scripts/crosby.conf /etc/init/crosby.conf')
     sudo('initctl reload-configuration')
     sudo('restart crosby')
