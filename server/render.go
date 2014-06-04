@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -20,6 +21,7 @@ func execute(name string, data interface{}) (*bytes.Buffer, error) {
 
 	t := template.New(tmplName)
 	path := dir + "/" + TEMPLATE_DIR + "/" + name + ".html"
+	log.Println(path)
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
