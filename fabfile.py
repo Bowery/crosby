@@ -4,7 +4,7 @@ import requests
 project = "crosby"
 repository = "git@github.com:Bowery/" + project + ".git"
 crosby_hosts = [
-  'ec2-54-226-183-252.compute-1.amazonaws.com'
+  'ubuntu@ec2-54-226-183-252.compute-1.amazonaws.com'
 ]
 # env.key_filename = '/home/ubuntu/.ssh/id_aws'
 env.key_filename = '/Users/steve/.ssh/bowery.pem'
@@ -14,7 +14,8 @@ def restart_crosby():
   with cd('/home/ubuntu/gocode/src/crosby'):
     # run('git pull')
     with cd('server'):
-      sudo('GOPATH=/home/ubuntu/gocode go get')
+      sudo('GOPATH=/home/ubuntu/gocode go get -d')
+      sudo('GOPATH=/home/ubuntu/gocode go build')
       run('myth static/style.css static/out.css')
 
     sudo('mv ../../bin/server /usr/local/bin/crosby')
