@@ -4,9 +4,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -18,9 +19,14 @@ func main() {
 		route.HandlerFunc(r.Handler)
 	}
 
+	port := ":3000"
+	if os.Getenv("ENV") == "production" {
+		port = ":80"
+	}
+
 	// Start the server.
 	server := &http.Server{
-		Addr:    ":3000",
+		Addr:    port,
 		Handler: &SlashHandler{&LogHandler{os.Stdout, router}},
 	}
 
