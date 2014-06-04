@@ -6,8 +6,7 @@ repository = "git@github.com:Bowery/" + project + ".git"
 crosby_hosts = [
   'ubuntu@ec2-54-226-183-252.compute-1.amazonaws.com'
 ]
-# env.key_filename = '/home/ubuntu/.ssh/id_aws'
-env.key_filename = '/Users/steve/.ssh/bowery.pem'
+env.key_filename = '/home/ubuntu/.ssh/id_aws'
 env.password = 'java$cript'
 
 def restart_crosby():
