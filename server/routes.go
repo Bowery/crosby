@@ -29,7 +29,7 @@ var Routes = []*Route{
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
-	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("/home/ubuntu/gocode/src/crosby/server/static"))).ServeHTTP},
+	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP},
 }
 
 func init() {
