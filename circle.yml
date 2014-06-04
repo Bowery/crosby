@@ -1,0 +1,9 @@
+dependencies:
+  pre:
+    - pip install fabric
+    - pip install requests
+deployment:
+  production:
+    branch: master
+    commands:
+      - fab crosby
