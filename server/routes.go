@@ -7,7 +7,6 @@ import (
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
 	"net/http"
-	"net/http/httputil"
 	"time"
 )
 
@@ -28,30 +27,10 @@ var Routes = []*Route{
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/test", []string{"POST"}, TestHandler},
-	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP},
 }
 
 func init() {
 	stripe.SetKey("sk_test_BKnPoMNUWSGHJsLDcSGeV8I9")
-}
-
-// POST /test, testing ajax post
-func TestHandler(rw http.ResponseWriter, req *http.Request) {
-	raw, _ := httputil.DumpRequest(req, true)
-
-	fmt.Println(string(raw[:]))
-	res := NewResponder(rw, req)
-	if err := req.ParseForm(); err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-
-	fmt.Println(req.PostFormValue("more"))
-	res.Body["status"] = "success"
-	res.Body["message"] = "hello " + req.PostFormValue("name")
-	res.Send(http.StatusOK)
 }
 
 // GET /, Upload new service.
