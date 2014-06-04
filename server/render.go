@@ -43,6 +43,7 @@ func execute(name string, data interface{}) (*bytes.Buffer, error) {
 
 func RenderTemplate(wr io.Writer, name string, data interface{}) error {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	log.Println(dir)
 	tmpl := template.New(name).Funcs(template.FuncMap{
 		"yield": func() (template.HTML, error) {
 			buf, err := execute(name, data)
