@@ -6,6 +6,7 @@
   --grey-dark: #444;
   --grey-light: color(var(--green) tint(97%));
   --grey: #c2c2c2;
+  --grey-transparent: color(var(--green) tint(15%));
 
   --width: 620px;
   --nav-height: 42px;
@@ -57,6 +58,10 @@ h4 {
   font-weight: 700;
   letter-spacing: 0;
   color: var(--grey);
+}
+
+img {
+  width: 100%
 }
 
 .container {
@@ -162,7 +167,7 @@ pre.code {
 }
 
 .logo {
-  background-image: url('/img/logo.png');
+  background-image: url('/static/logo.png');
   background-size: contain;
 }
 .logo.small {

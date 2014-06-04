@@ -26,6 +26,9 @@ func execute(name string, data interface{}) (*bytes.Buffer, error) {
 		"yield": func() (string, error) {
 			return "", fmt.Errorf("yield called with no layout defined")
 		},
+		"current": func() (string, error) {
+			return name, nil
+		},
 	})
 
 	t, err = t.Parse(string(buf))
@@ -45,6 +48,9 @@ func RenderTemplate(wr io.Writer, name string, data interface{}) error {
 			// return safe html here since we are rendering our own template
 			fmt.Println("Yeild was called")
 			return template.HTML(buf.String()), err
+		},
+		"current": func() (string, error) {
+			return name, nil
 		},
 	})
 

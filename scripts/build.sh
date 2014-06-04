@@ -56,21 +56,10 @@ go build \
     -o ../bin/server${EXTENSION}
 cp ../bin/server${EXTENSION} ${GOPATHSINGLE}/bin
 
-echo "--> Checking that Mongo is Up"
-ps -A | grep [m]ongod
-RESULT=$?   # returns 0 if mongo eval succeeds
-if [ $RESULT -ne 0 ]; then
-    echo "--> Starting MongoDB..."
-    mongod &
-fi
+/bin/bash ${DIR}/scripts/check-mongo.sh
+/bin/bash ${DIR}/scripts/check-myth.sh
 
 echo "--> Compiling Assets with Myth"
-which myth > /dev/null
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-    echo "--> Installing Myth first."
-    sudo npm install -g myth
-fi
 myth static/style.css static/out.css
 
 

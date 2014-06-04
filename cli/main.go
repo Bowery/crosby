@@ -62,8 +62,8 @@ func init() {
 	startTime = time.Now()
 	root, _ = os.Getwd()
 	args = os.Args[1:]
-	dbHost = "localhost"
-	apiHost = "localhost:3000"
+	dbHost = "localhost"       // ec2-54-83-94-130.compute-1.amazonaws.com
+	apiHost = "localhost:3000" // crosby.io
 
 	session, err := mgo.Dial(dbHost)
 	if err != nil {
