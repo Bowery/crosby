@@ -1,3 +1,4 @@
 bin
 server/static/out.css
 fabfile.pyc
+cli/pkg

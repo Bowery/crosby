@@ -308,25 +308,3 @@ input:active {
 .box.grey {
   background: #c2c2c2;
 }
-
-.mousetrap {
-  display: none;
-  overflow: auto;
-  overflow-y: scroll;
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1050;
-  background: rgb(71, 165, 149);
-}
-
-
-
-.modal.up {
-  position: absolute;
-  top: 10px;
-  left: 15px;
-  z-index: 2000;
-}
