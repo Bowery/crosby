@@ -77,6 +77,7 @@ document.addEventListener(dcl, listener = function () {
   accountInput.onchange = function (e) {
     var id = e.target.value
     ajax('/session/' + id, function (res) {
+      console.log(res)
       try {
         var body = JSON.parse(res)
         var hasWarning = !!~accountInput.className.indexOf("warning")
