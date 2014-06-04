@@ -28,6 +28,7 @@ type Route struct {
 // List of named routes.
 var Routes = []*Route{
 	&Route{"/", []string{"GET"}, HomeHandler},
+	&Route{"/download", []string{"GET"}, DownloadHandler},
 	&Route{"/session", []string{"POST"}, CreateSessionHandler},
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
@@ -40,9 +41,16 @@ func init() {
 	stripe.SetKey("sk_test_BKnPoMNUWSGHJsLDcSGeV8I9")
 }
 
-// GET /, Upload new service.
+// GET /, Introduction to Crosby
 func HomeHandler(rw http.ResponseWriter, req *http.Request) {
 	if err := RenderTemplate(rw, "home", map[string]string{"Name": "Crosby"}); err != nil {
+		RenderTemplate(rw, "error", map[string]string{"Error": err.Error()})
+	}
+}
+
+// GET /download, Renders Page to Download Crosby
+func DownloadHandler(rw http.ResponseWriter, req *http.Request) {
+	if err := RenderTemplate(rw, "download", map[string]string{"Name": "Crosby"}); err != nil {
 		RenderTemplate(rw, "error", map[string]string{"Error": err.Error()})
 	}
 }

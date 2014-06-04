@@ -240,6 +240,7 @@ input:active {
   margin: 0;
   padding: 40px 0;
   border-bottom: 2px solid rgb(248, 252, 251);
+  overflow: auto;
 }
 
 .stat-group {
@@ -307,4 +308,17 @@ input:active {
 
 .box.grey {
   background: #c2c2c2;
+}
+
+.download-group img,
+.download-group div {
+  float: left;
+}
+
+.download-group .thumbnail {
+  width: 75px;
+}
+
+.download-group .description {
+  margin: 15px 0 0 30px;
 }
