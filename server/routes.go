@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
+	"html/template"
 	"net/http"
 	"time"
 )
@@ -36,10 +37,9 @@ func init() {
 
 // GET /, Upload new service.
 func HomeHandler(rw http.ResponseWriter, req *http.Request) {
-	res := NewResponder(rw, req)
-	res.Body["status"] = "success"
-	res.Body["message"] = "Welcome to Crosby.io"
-	res.Send(http.StatusOK)
+	if err := RenderTemplate(rw, "home", map[string]string{"name": "Crosby"}); err != nil {
+		panic(err)
+	}
 }
 
 // POST /session, Creates a new user and charges them for the first year.
@@ -214,8 +214,10 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 // GET /signup, Renders signup find. Will also handle billing
-func SignUpHandler(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, "static/signup.html")
+func SignUpHandler(w http.ResponseWriter, req *http.Request) {
+	t := template.New("signup")
+	t, _ = t.ParseFiles("static/signup.html")
+	t.Execute(w, nil)
 }
 
 // Get /thanks!, Renders a thank you/confirmation message stored in static/thanks.html
