@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
-	"html/template"
 	"net/http"
 	"time"
 )
@@ -37,8 +36,8 @@ func init() {
 
 // GET /, Upload new service.
 func HomeHandler(rw http.ResponseWriter, req *http.Request) {
-	if err := RenderTemplate(rw, "home", map[string]string{"name": "Crosby"}); err != nil {
-		panic(err)
+	if err := RenderTemplate(rw, "home", map[string]string{"Name": "Crosby"}); err != nil {
+		RenderTemplate(rw, "error", map[string]string{"Error": err.Error()})
 	}
 }
 
@@ -215,9 +214,9 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 
 // GET /signup, Renders signup find. Will also handle billing
 func SignUpHandler(w http.ResponseWriter, req *http.Request) {
-	t := template.New("signup")
-	t, _ = t.ParseFiles("static/signup.html")
-	t.Execute(w, nil)
+	if err := RenderTemplate(w, "signup", map[string]interface{}{"isSignup": true}); err != nil {
+		RenderTemplate(w, "error", map[string]string{"Error": err.Error()})
+	}
 }
 
 // Get /thanks!, Renders a thank you/confirmation message stored in static/thanks.html
