@@ -5,10 +5,8 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/bradrydzewski/go.stripe"
@@ -17,6 +15,8 @@ import (
 
 // 32 MB, same as http.
 const httpMaxMem = 32 << 10
+
+var cwd, _ = os.Getwd()
 
 // Route is a single named route with a http.HandlerFunc.
 type Route struct {
@@ -32,12 +32,10 @@ var Routes = []*Route{
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
-	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP},
+	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir(cwd+"static"))).ServeHTTP},
 }
 
 func init() {
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	log.Println(dir)
 	stripe.SetKey("sk_test_BKnPoMNUWSGHJsLDcSGeV8I9")
 }
 
