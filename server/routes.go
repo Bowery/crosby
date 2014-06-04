@@ -5,7 +5,10 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/bradrydzewski/go.stripe"
@@ -33,6 +36,8 @@ var Routes = []*Route{
 }
 
 func init() {
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	log.Println(dir)
 	stripe.SetKey("sk_test_BKnPoMNUWSGHJsLDcSGeV8I9")
 }
 
