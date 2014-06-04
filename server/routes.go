@@ -32,6 +32,7 @@ var Routes = []*Route{
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
+	&Route{"/healthz", []string{"GET"}, HealthzHandler},
 	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir(cwd+"/static"))).ServeHTTP},
 }
 
@@ -227,4 +228,7 @@ func SignUpHandler(w http.ResponseWriter, req *http.Request) {
 // Get /thanks!, Renders a thank you/confirmation message stored in static/thanks.html
 func ThanksHandler(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, "static/thanks.html")
+}
+func HealthzHandler(res http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(res, "ok")
 }
