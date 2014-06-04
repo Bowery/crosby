@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/bradrydzewski/go.stripe"
@@ -15,8 +14,6 @@ import (
 
 // 32 MB, same as http.
 const httpMaxMem = 32 << 10
-
-var cwd, _ = os.Getwd()
 
 // Route is a single named route with a http.HandlerFunc.
 type Route struct {
@@ -32,7 +29,7 @@ var Routes = []*Route{
 	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
-	// &Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))).ServeHTTP},
+	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP},
 }
 
 func init() {
