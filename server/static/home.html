@@ -1,13 +1,18 @@
 <h1>Crosby</h1>
-<p>Don't Compile Anything Twice</p>
+<p>A Command Line Caching Layer</p>
 
-<div class="group group-motivation">
-  <h2>Motivation</h2>
-  <p>We're impatient millennials.</p>
-  <p>Seriously though, its ludicrous that lots of developers in the world are waiting for the same code to compile or the same dependencies to be installed. If someone has already compiled the same code on the same platform as you're about to, why do it again and not just download the binary they created? That's what Crosby does.</p>
+<div class="group group-why">
+  <h2>What is Crosby?</h2>
+  <p>Crosby is a distributed command line caching layer. Are you tired of lengthy compilations or installations? Crosby checks if another Crosby user has done what you're attempting to do before and will write the results to your filesystem without actually running the command.</p>
 </div>
 
-<div class="group group-usage">
+<div class="group group-how">
+  <h2>How does it work?</h2>
+  <p>Crosby looks for the result of the same command run against the same target. A target is defined as an identical file structure with identical contents in the current working directory that also has a matching operating system, CPU architecture, &amp; operating system.</p>
+  <p>If a matching result is not found, Crosby runs the command normally and stores the result so that it will be available next time.</p>
+</div>
+
+<div class="group group-what">
   <h2>Usage</h2>
   <pre class="code">
           crosby &lt;command&gt; [args...]</pre>
@@ -30,7 +35,8 @@
 </div>
 
 <div class="group group-pricing">
-  <h2>Pricing</h2>
+  <h2>Too Good to Be True?</h2>
+  <p>Sort of... We're charging for it.</p>
   <ul class="list">
     <li class="item">First Month Free</li>
     <li class="item">$25/year for Unlimited Usage</li>

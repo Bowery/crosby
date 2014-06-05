@@ -220,6 +220,7 @@ input:focus, input:active {
   margin: 0;
   padding: 40px 0;
   border-bottom: 2px solid var(--grey-light);
+  overflow: auto;
 }
 
 .stat-group {
@@ -275,4 +276,15 @@ input:focus, input:active {
 }
 .box.grey {
   background: var(--grey);
+}
+
+.download-group img,
+.download-group div {
+  float: left;
+}
+.download-group .thumbnail {
+  width: 75px;
+}
+.download-group .description {
+  margin: 15px 0 0 30px;
 }

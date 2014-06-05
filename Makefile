@@ -17,4 +17,11 @@ format:
 test: deps
 	go list ./... | xargs -n1 go test
 
+release:
+	@bash --norc -i ./scripts/release.sh
+
+clean:
+	rm -rf cli/pkg
+	rm -rf bin
+
 .PNONY: all deps test format

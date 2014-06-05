@@ -240,6 +240,7 @@ input:active {
   margin: 0;
   padding: 40px 0;
   border-bottom: 2px solid rgb(248, 252, 251);
+  overflow: auto;
 }
 
 .stat-group {
@@ -309,24 +310,15 @@ input:active {
   background: #c2c2c2;
 }
 
-.mousetrap {
-  display: none;
-  overflow: auto;
-  overflow-y: scroll;
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1050;
-  background: rgb(71, 165, 149);
+.download-group img,
+.download-group div {
+  float: left;
 }
 
+.download-group .thumbnail {
+  width: 75px;
+}
 
-
-.modal.up {
-  position: absolute;
-  top: 10px;
-  left: 15px;
-  z-index: 2000;
+.download-group .description {
+  margin: 15px 0 0 30px;
 }
