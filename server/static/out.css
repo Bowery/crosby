@@ -1,57 +1,56 @@
-
+:root {
+  /* TODO thebyrd find red that matches yellow */
+}
 
 * {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
-  font-weight: lighter;
 }
 
 body {
-  background-color: rgb(248, 252, 251);
+  border-top: 13px solid #ffd200;
+  font-family: "museo-slab", serif;
+  font-size: 16px;
+  font-weight: 300;
 }
 
-body,
-a,
 h1,
 h2,
 h3,
 h4 {
-  font: 16px "Gotham SSm A", "Gotham SSm B", "Gotham", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font: 16px "museo-sans-rounded", sans-serif;
   margin: 0;
 }
 
 a {
-  color: #265ba9;
+  font-family: "museo-slab", serif;
+  color: #c2c2c2;
   font-weight: bold;
   text-decoration: none;
 }
 
-h1,
-h2 {
-  font-size: 42px;
-  color: #444;
-  letter-spacing: -2px;
-  font-weight: bold
+h1 {
+  font-size: 2.5em;
+  letter-spacing: 0.1em;
+  font-weight: 300;
   margin: 0;
 }
 
 h2 {
-  font-size: 36px;
-  font-weight: 200;
+  font-size: 2em;
+  font-weight: 300;
 }
 
 h3 {
-  font-size: 31px;
+  font-size: 1.5em;
   color: #444;
 }
 
 h4 {
-  font-size: 14px;
+  font-size: 1.313em;
   text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: #c2c2c2;
+  background: url("/static/yellow-stripe.png") repeat-x;
 }
 
 img {
@@ -64,44 +63,6 @@ img {
   background-color: white;
   height: 100%;
   padding: 20px 60px;
-}
-
-.navigation {
-  padding: 0;
-  width: 100%;
-  height: 42px;
-  background-color: #269582;
-}
-
-ul.navigation-inner {
-  max-width: 620px;
-  margin: 0 auto;
-  list-style-type: none;
-  padding: 0 0 0 22px;
-  background-color: rgb(81, 170, 155);
-  height: 42px;
-}
-
-li.navigation-item {
-  float: right;
-  margin: 0 22px 0 10px;
-  padding-top: 12px;
-}
-
-.navigation-item a {
-  font-size: 14px;
-  text-transform: uppercase;
-  font-weight: lighter;
-  color: white;
-  text-decoration: none;
-}
-
-.navigation-inner > .navigation-item:first-child {
-  padding-top: 0;
-  margin: 0;
-  height: 40px;
-  width: 40px;
-  float: left;
 }
 
 .btn:active,
@@ -122,67 +83,37 @@ li.navigation-item {
   padding: 6px 12px;
   font-size: 14px;
   line-height: 1.4285714;
-  border-radius: 4px;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
   color: white;
+  border-radius: 0px;
+  -webkit-transition: border-radius 300ms background-color 300ms;
+  transition: border-radius 300ms background-color 300ms;
+  transition: background-color 300ms;
+}
+
+.btn:hover {
+  color: white;
+  background-color: #ffd200;
+  border-radius: 4px;
 }
 
 .btn-default {
-  background-color: black;
-  border-color: black;
+  background-color: #c2c2c2;
 }
 
 .btn-primary {
-  background-color: #265ba9;
-  border-color: #265ba9;
-}
-
-.btn-success {
-  background-color: #269582;
-  border-color: #269582;
-}
-
-.btn-info {
-  color: #444;
-  background-color: white;
-  border-color: #444;
-}
-
-.btn-warning {
-  background-color: #ad2b2e;
-  border-color: #ad2b2e;
-}
-
-.btn-link {
-  color: #444;
-  border: none;
-  border-radius: 0;
-  background-color: white;
-  text-decoration: underline;
+  background-color: #ffd200;
+  border-color: #ffd200;
 }
 
 pre.code {
-  background: rgb(248, 252, 251);
   border-radius: 8px;
-  border: 1px solid #c2c2c2;
-  font: 12px monospace #444;
+  font: 12px "museo-slab" #444;
   overflow: auto;
-  font-family: Menlo, monospace;
   padding: 10px;
-}
-
-.logo {
-  background-image: url('/static/logo.png');
-  -webkit-background-size: contain;
-  background-size: contain;
-}
-
-.logo.small {
-  display: block;
-  height: 40px;
 }
 
 .form {
@@ -206,7 +137,7 @@ input:active {
 
 .form-group input:focus,
 .form-group input:active {
-  border-color: #269582;
+  border-color: #ffd200;
 }
 
 .form-group input.warning,
@@ -217,7 +148,7 @@ input:active {
 
 .form-group .text-input {
   display: inline;
-  border: 1px solid rgb(248, 252, 251);
+  border: 1px solid #c2c2c2;
   border-radius: 3px;
   -webkit-box-shadow: 0 0 1px rgba(0,0,0,0.4) inset;
   box-shadow: 0 0 1px rgba(0,0,0,0.4) inset;
@@ -233,13 +164,12 @@ input:active {
 .form input[type="submit"] {
   width: 100%;
   padding: 10px;
-  border-radius: 3px;
 }
 
 .group {
   margin: 0;
   padding: 40px 0;
-  border-bottom: 2px solid rgb(248, 252, 251);
+  border-bottom: 2px solid #c2c2c2;
   overflow: auto;
 }
 
@@ -277,37 +207,6 @@ input:active {
   color: #c2c2c2;
   margin-bottom: 14px;
   font-size: 12px;
-}
-
-.box {
-  width: 20px;
-  height: 20px;
-  display: inline-block;
-  margin: 0 0 0 8px;
-}
-
-.box.blue {
-  background: #265ba9;
-}
-
-.box.red {
-  background: #ad2b2e;
-}
-
-.box.green {
-  background: #269582;
-}
-
-.box.grey-light {
-  background: rgb(248, 252, 251);
-}
-
-.box.grey-dark {
-  background: #444;
-}
-
-.box.grey {
-  background: #c2c2c2;
 }
 
 .download-group img,
