@@ -18,8 +18,13 @@ func execute(name string, data interface{}) (*bytes.Buffer, error) {
 	tmplName := name + "-partial"
 
 	t := template.New(tmplName)
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	path := dir + "/" + TEMPLATE_DIR + "/" + name + ".html"
+
+	path := TEMPLATE_DIR + "/" + name + ".html"
+	if os.Getenv("ENV") == "production" {
+		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+		path = dir + "/" + path
+	}
+
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
@@ -57,8 +62,12 @@ func RenderTemplate(wr io.Writer, name string, data interface{}) error {
 		},
 	})
 
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	layoutPath := dir + "/" + TEMPLATE_DIR + "/layout.html"
+	layoutPath := TEMPLATE_DIR + "/layout.html"
+	if os.Getenv("ENV") == "production" {
+		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+		layoutPath = dir + "/" + layoutPath
+	}
+
 	buf, err := ioutil.ReadFile(layoutPath)
 	if err != nil {
 		return err

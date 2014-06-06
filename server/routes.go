@@ -16,7 +16,7 @@ import (
 // 32 MB, same as http.
 const httpMaxMem = 32 << 10
 
-var cwd, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+var STATIC_DIR string = TEMPLATE_DIR
 
 // Route is a single named route with a http.HandlerFunc.
 type Route struct {
@@ -34,11 +34,16 @@ var Routes = []*Route{
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
 	&Route{"/healthz", []string{"GET"}, HealthzHandler},
-	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir(cwd+"/static"))).ServeHTTP},
+	&Route{"/static/{rest}", []string{"GET"}, http.StripPrefix("/static/", http.FileServer(http.Dir(STATIC_DIR))).ServeHTTP},
 }
 
 func init() {
 	stripe.SetKey("sk_test_BKnPoMNUWSGHJsLDcSGeV8I9")
+
+	var cwd, _ = filepath.Abs(filepath.Dir(os.Args[0]))
+	if os.Getenv("ENV") == "production" {
+		STATIC_DIR = cwd + "/" + STATIC_DIR
+	}
 }
 
 // GET /, Introduction to Crosby
@@ -234,8 +239,10 @@ func SignUpHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 // Get /thanks!, Renders a thank you/confirmation message stored in static/thanks.html
-func ThanksHandler(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, "static/thanks.html")
+func ThanksHandler(w http.ResponseWriter, req *http.Request) {
+	if err := RenderTemplate(w, "thanks", map[string]interface{}{}); err != nil {
+		RenderTemplate(w, "error", map[string]string{"Error": err.Error()})
+	}
 }
 func HealthzHandler(res http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(res, "ok")
