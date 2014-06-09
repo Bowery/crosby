@@ -53,6 +53,8 @@ h4 {
   font-size: 1.313em;
   text-transform: uppercase;
   background: url("/static/yellow-stripe.png") repeat;
+  display: inline-block;
+  /* so the background is only behind the text */
 }
 
 img {
