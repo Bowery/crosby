@@ -1,5 +1,6 @@
 bin
 server/static/out.css
 fabfile.pyc
-cli/pkg
+crosby/pkg
+crosby/crosby
 server/server

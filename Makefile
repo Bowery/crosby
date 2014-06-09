@@ -21,7 +21,7 @@ release:
 	@bash --norc -i ./scripts/release.sh
 
 clean:
-	rm -rf cli/pkg
+	rm -rf crosby/pkg
 	rm -rf bin
 
 .PNONY: all deps test format

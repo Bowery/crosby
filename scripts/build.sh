@@ -40,7 +40,7 @@ go get \
 
 # Build CLI!
 echo "--> Building CLI..."
-cd "${DIR}/cli"
+cd "${DIR}/crosby"
 go build \
     -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
     -v \
