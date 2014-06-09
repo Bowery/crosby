@@ -38,12 +38,13 @@ var Routes = []*Route{
 }
 
 func init() {
-	stripe.SetKey("sk_test_BKnPoMNUWSGHJsLDcSGeV8I9")
-
+	stripeKey := "sk_test_BKnPoMNUWSGHJsLDcSGeV8I9"
 	var cwd, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 	if os.Getenv("ENV") == "production" {
 		STATIC_DIR = cwd + "/" + STATIC_DIR
+		stripeKey = "sk_live_fx0WR9yUxv6JLyOcawBdNEgj"
 	}
+	stripe.SetKey(stripeKey)
 }
 
 // GET /, Introduction to Crosby
@@ -233,7 +234,15 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 
 // GET /signup, Renders signup find. Will also handle billing
 func SignUpHandler(w http.ResponseWriter, req *http.Request) {
-	if err := RenderTemplate(w, "signup", map[string]interface{}{"isSignup": true}); err != nil {
+	stripePubKey := "pk_test_m8TQEAkYWSc1jZh7czo8xhA7"
+	if os.Getenv("ENV") == "production" {
+		stripePubKey = "pk_live_LOngSSK6d3qwW0aBEhWSVEcF"
+	}
+
+	if err := RenderTemplate(w, "signup", map[string]interface{}{
+		"isSignup":     true,
+		"stripePubKey": stripePubKey,
+	}); err != nil {
 		RenderTemplate(w, "error", map[string]string{"Error": err.Error()})
 	}
 }
