@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -32,6 +33,7 @@ var (
 	dbHost    string
 	apiHost   string
 	homeVar   string
+	wg        sync.WaitGroup
 )
 
 type Session struct {
@@ -172,6 +174,10 @@ func CreateUser() (*User, error) {
 // If the session has expired
 //
 func ValidateSession() error {
+	if os.Getenv("ENV") == "development" {
+		return nil
+	}
+
 	user, err := CurrentUser()
 	if err == io.EOF {
 		user, err = CreateUser()
@@ -296,48 +302,56 @@ func WriteFromCache(s *Source) {
 	}
 
 	for _, f := range targetResults {
-		file, err := fs.OpenId(f["_id"])
-		if err != nil {
-			// TODO (thebyrd) remove id from cache and handle this gracefully.
-			fmt.Println("Unable to find cached file with id ", f["_id"], ". Please contact support@bowery.io.")
-			fmt.Println(err)
-			return
-		}
-
-		outPath := strings.Replace(f["filename"].(string), resultId+":", "", -1)
-
-		if err = os.MkdirAll(filepath.Dir(outPath), os.ModePerm|os.ModeDir); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		outfile, err := os.Create(outPath)
-		if err != nil {
-			fmt.Println("Failed to create file. Please make sure this program has appropriate permission.")
-			fmt.Println(err)
-			return
-		}
-		defer outfile.Close()
-
-		if _, err = io.Copy(outfile, file); err != nil {
-			fmt.Println("Failed to copy file from cache to your computer. Please make sure this program has appropriate permission.")
-			fmt.Println(err)
-			return
-		}
-
-		if err = file.Close(); err != nil {
-			fmt.Println("Failed to close resulting file. Please make sure this program has appropriate permission.")
-			fmt.Println(err)
-			return
-		}
-
-		if err = exec.Command("chmod", "+x", outPath).Run(); err != nil {
-			fmt.Println("Failed to make resulting file executable. Please make sure this program has appropriate permission.")
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("Finished writing " + outPath + ".")
+		wg.Add(1)
+		go writeFile(f, resultId)
 	}
+	wg.Wait()
+}
+
+func writeFile(f map[string]interface{}, resultId string) {
+	defer wg.Done()
+
+	file, err := fs.OpenId(f["_id"])
+	if err != nil {
+		// TODO (thebyrd) remove id from cache and handle this gracefully.
+		fmt.Println("Unable to find cached file with id ", f["_id"], ". Please contact support@bowery.io.")
+		fmt.Println(err)
+		return
+	}
+
+	outPath := strings.Replace(f["filename"].(string), resultId+":", "", -1)
+	if err = os.MkdirAll(filepath.Dir(outPath), os.ModePerm|os.ModeDir); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	outfile, err := os.Create(outPath)
+	if err != nil {
+		fmt.Println("Failed to create file. Please make sure this program has appropriate permission.")
+		fmt.Println(err)
+		return
+	}
+	defer outfile.Close()
+
+	if _, err = io.Copy(outfile, file); err != nil {
+		fmt.Println("Failed to copy file from cache to your computer. Please make sure this program has appropriate permission.")
+		fmt.Println(err)
+		return
+	}
+
+	if err = file.Close(); err != nil {
+		fmt.Println("Failed to close resulting file. Please make sure this program has appropriate permission.")
+		fmt.Println(err)
+		return
+	}
+
+	if err = exec.Command("chmod", "+x", outPath).Run(); err != nil {
+		fmt.Println("Failed to make resulting file executable. Please make sure this program has appropriate permission.")
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Finished writing " + outPath + ".")
+
 }
 
 func main() {

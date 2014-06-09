@@ -93,6 +93,14 @@ function validateSignup () {
   }
 }
 
+// 'routes'
+var routes = {
+  "signup": validateSignup,
+  "home": function () {
+    console.log("you're on the homepage!!!")
+  }
+}
+
 
 // on document ready
 var doc = document
@@ -103,9 +111,6 @@ doc.addEventListener(dcl, listener = function () {
   console.log("Dom Ready!")
   doc.removeEventListener(dcl, listener)
 
-  if (~document.body.className.indexOf("signup"))
-    validateSignup()
-
-  if (~document.body.className.indexOf("home"))
-    demoResize()
+  for (var route in routes)
+    ~document.body.className.indexOf(route) && routes[route]()
 })
