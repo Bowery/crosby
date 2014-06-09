@@ -227,18 +227,13 @@ func ValidateSession() error {
 
 func AddToCache(s *Source) {
 	fmt.Println("Result not found in cache. Running command (may take a while)...")
-
-	var cmdOut, cmdErr bytes.Buffer
-	fmt.Println(args[0], args[1:])
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stderr = &cmdErr
-	cmd.Stdout = &cmdOut
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 
 	err := cmd.Run()
-	fmt.Println(cmdOut.String())
 	if err != nil {
 		fmt.Println("Running command failed:", err)
-		fmt.Println(cmdErr.String())
 		return
 	}
 	fmt.Println("Command has finished. Adding result in cache.")
