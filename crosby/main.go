@@ -78,6 +78,7 @@ func init() {
 		panic("could not connect to crosby")
 		return
 	}
+	session.SetSocketTimeout(time.Hour)
 	db = session.DB("crosby")
 	c = db.C("sources")
 	fs = db.GridFS("fs")
