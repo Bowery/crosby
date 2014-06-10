@@ -64,7 +64,7 @@ func init() {
 	startTime = time.Now()
 	root, _ = os.Getwd()
 	args = os.Args[1:]
-	dbHost = "ec2-54-83-94-130.compute-1.amazonaws.com"
+	dbHost = "io.crosby.io"
 	apiHost = "crosby.io"
 
 	if os.Getenv("ENV") == "development" {
@@ -78,6 +78,7 @@ func init() {
 		panic("could not connect to crosby")
 		return
 	}
+	session.SetSocketTimeout(time.Hour)
 	db = session.DB("crosby")
 	c = db.C("sources")
 	fs = db.GridFS("fs")
