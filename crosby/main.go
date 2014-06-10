@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo"
@@ -228,25 +229,26 @@ func ValidateSession() error {
 	return nil
 }
 
-func saveResult(path, relPath, sourceId string) {
-	defer saveWg.Done()
+func saveResult(path, relPath, sourceId string) error {
 	file, err := fs.Create(sourceId + ":" + relPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	content, err := os.Open(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer content.Close()
 
 	if _, err = io.Copy(file, content); err != nil {
-		panic(err)
+		return err
 	}
 	if err = file.Close(); err != nil {
-		panic(err)
+		return err
 	}
 	resultFileIds = append(resultFileIds, file.Id().(bson.ObjectId))
+	saveWg.Done()
+	return nil
 }
 
 func AddToCache(s *Source) {
@@ -277,7 +279,9 @@ func AddToCache(s *Source) {
 
 			fmt.Println("- Adding " + relPath + " to cache.")
 			saveWg.Add(1)
-			go saveResult(path, relPath, sourceId.Hex())
+			go backoff.Retry(func() error {
+				return saveResult(path, relPath, sourceId.Hex())
+			}, backoff.NewExponentialBackoff())
 		}
 		return nil
 	}); err != nil {
