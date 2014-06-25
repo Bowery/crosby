@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cenkalti/backoff"
+	"github.com/cheggaaa/pb"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo"
@@ -27,7 +28,9 @@ var (
 	session       mgo.Session
 	db            *mgo.Database
 	c             *mgo.Collection
+	s             *Source
 	fs            *mgo.GridFS
+	progressBar   *pb.ProgressBar
 	startTime     time.Time
 	root          string
 	args          []string
@@ -79,7 +82,6 @@ func init() {
 	if err != nil {
 		fmt.Println(err)
 		panic("could not connect to crosby")
-		return
 	}
 	session.SetSocketTimeout(time.Hour)
 	db = session.DB("crosby")
@@ -270,12 +272,12 @@ func AddToCache(s *Source) {
 	// insert files that have been created since start
 	if err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		relPath, _ := filepath.Rel(root, path)
-		// ignore hidden directories and .
-		if relPath == "." || strings.Contains(relPath, "/.") || info.IsDir() {
+		// ignore hidden directories and .git
+		if relPath == "." || strings.Contains(relPath, ".git") || info.IsDir() {
 			return nil
 		}
 
-		if info.ModTime().Unix() >= startTime.Unix() { // .After isn't granular enough
+		if s.Files[strings.Replace(relPath, ".", "_", -1)] == "" { // check if the file was in the target map
 
 			fmt.Println("- Adding " + relPath + " to cache.")
 			saveWg.Add(1)
@@ -301,7 +303,6 @@ func AddToCache(s *Source) {
 }
 
 func WriteFromCache(s *Source) {
-	fmt.Println("Writing files from cache instead of running command...")
 	resultId := s.Id.Hex()
 	targetResults := []bson.M{}
 	if err := fs.Find(bson.M{"_id": bson.M{"$in": s.ResultIds}}).All(&targetResults); err != nil {
@@ -309,6 +310,13 @@ func WriteFromCache(s *Source) {
 		fmt.Println(err)
 		return
 	}
+	if len(targetResults) < 1 {
+		fmt.Println("This command does not update your current directory. No action was taken.")
+		os.Exit(1)
+	} else {
+		fmt.Println("Writing Files from Crosby ...")
+	}
+	progressBar = pb.StartNew(len(targetResults))
 
 	for _, f := range targetResults {
 		wg.Add(1)
@@ -359,8 +367,7 @@ func writeFile(f map[string]interface{}, resultId string) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Finished writing " + outPath + ".")
-
+	progressBar.Increment()
 }
 
 func main() {
@@ -377,7 +384,7 @@ func main() {
 		return
 	}
 
-	s := &Source{
+	s = &Source{
 		Arch:  runtime.GOOS + "-" + runtime.GOARCH,
 		Args:  strings.Join(args, " "),
 		Files: map[string]string{},
@@ -386,7 +393,7 @@ func main() {
 	if err := filepath.Walk(root, func(path string, f os.FileInfo, err error) error {
 		relPath, _ := filepath.Rel(root, path)
 		// ignore hidden directories and .
-		if relPath == "." || strings.Contains(relPath, "/.") {
+		if relPath == "." || strings.Contains(relPath, ".git") {
 			return nil
 		}
 
@@ -421,6 +428,7 @@ func main() {
 		AddToCache(s)
 	} else if err == nil {
 		WriteFromCache(s)
+		progressBar.FinishPrint("Done!")
 	} else {
 		fmt.Println("Error connecting to database. Please make sure you are connected to the internet and try again.")
 		fmt.Println(err)
