@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cenkalti/backoff"
-	"github.com/cheggaaa/pb"
+	"github.com/thebyrd/pb"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo"
