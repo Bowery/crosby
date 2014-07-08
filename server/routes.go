@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Bowery/gopackages/keen"
 	"github.com/bradrydzewski/go.stripe"
 	"github.com/gorilla/mux"
 )
@@ -17,6 +18,7 @@ import (
 const httpMaxMem = 32 << 10
 
 var STATIC_DIR string = TEMPLATE_DIR
+var keenC *keen.Client
 
 // Route is a single named route with a http.HandlerFunc.
 type Route struct {
@@ -45,6 +47,12 @@ func init() {
 		stripeKey = "sk_live_fx0WR9yUxv6JLyOcawBdNEgj"
 	}
 	stripe.SetKey(stripeKey)
+
+	keenC = &keen.Client{
+		WriteKey:  "8bbe0d9425a22a6c31e6da9ae3012c738ee21000b533c351a419bb0e3d08431456359d1bea654a39c2065df0b1df997ecde7e3cf49a9be0cd44341b15c1ff5523f13d26d8060373390f47bcc6a33b80e69e2b2c1101cde4ddb3d20b16a53a439a98043919e809c09c30e4856dedc963f",
+		ProjectID: "52c08d6736bf5a4a4b000005",
+	}
+
 }
 
 // GET /, Introduction to Crosby
@@ -94,6 +102,7 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Body["status"] = "created"
 		res.Body["user"] = u
 		res.Send(http.StatusOK)
+		keenC.AddEvent("crosby trial new", map[string]*User{"user": u})
 		return
 	}
 
@@ -164,6 +173,8 @@ func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	keenC.AddEvent("crosby payment new", map[string]*User{"user": u})
+
 	if req.PostFormValue("html") != "" {
 		http.Redirect(rw, req, "/thanks!", 302)
 		return
@@ -186,6 +197,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Body["status"] = "failed"
 		res.Body["error"] = err.Error()
 		res.Send(http.StatusBadRequest)
+		keenC.AddEvent("crosby session failed", map[string]string{"id": id})
 		return
 	}
 
@@ -193,6 +205,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Body["status"] = "found"
 		res.Body["user"] = u
 		res.Send(http.StatusOK)
+		keenC.AddEvent("crosby session found", map[string]*User{"user": u})
 		return
 	}
 
@@ -200,6 +213,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Body["status"] = "expired"
 		res.Body["user"] = u
 		res.Send(http.StatusOK)
+		keenC.AddEvent("crosby trial expired", map[string]*User{"user": u})
 		return
 	}
 
@@ -216,6 +230,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 		res.Body["status"] = "failed"
 		res.Body["error"] = err.Error()
 		res.Send(http.StatusBadRequest)
+		keenC.AddEvent("crosby payment failed", map[string]*User{"user": u})
 		return
 	}
 	u.Expiration = time.Now()
@@ -229,6 +244,7 @@ func SessionHandler(rw http.ResponseWriter, req *http.Request) {
 	res.Body["status"] = "found"
 	res.Body["user"] = u
 	res.Send(http.StatusOK)
+	keenC.AddEvent("crosby payment recurred", map[string]*User{"user": u})
 	return
 }
 

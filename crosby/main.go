@@ -11,8 +11,6 @@ import (
 	"github.com/thebyrd/pb"
 	"io"
 	"io/ioutil"
-	"labix.org/v2/mgo"
-	"labix.org/v2/mgo/bson"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,6 +20,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Bowery/gopackages/keen"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 )
 
 var (
@@ -40,6 +42,7 @@ var (
 	wg            sync.WaitGroup
 	saveWg        sync.WaitGroup
 	resultFileIds []bson.ObjectId
+	keenC         *keen.Client
 )
 
 type Session struct {
@@ -91,6 +94,11 @@ func init() {
 	homeVar = "HOME"
 	if runtime.GOOS == "windows" {
 		homeVar = "USERPROFILE"
+	}
+
+	keenC = &keen.Client{
+		WriteKey:  "8bbe0d9425a22a6c31e6da9ae3012c738ee21000b533c351a419bb0e3d08431456359d1bea654a39c2065df0b1df997ecde7e3cf49a9be0cd44341b15c1ff5523f13d26d8060373390f47bcc6a33b80e69e2b2c1101cde4ddb3d20b16a53a439a98043919e809c09c30e4856dedc963f",
+		ProjectID: "52c08d6736bf5a4a4b000005",
 	}
 }
 
@@ -424,13 +432,25 @@ func main() {
 		}
 	}
 
+	info := map[string]interface{}{
+		"command": os.Args[1],
+		"args":    strings.Join(args[1:], " "), // just the arguments to the command
+		"os":      runtime.GOOS,
+		"arch":    runtime.GOARCH,
+	}
+
 	if notFound {
 		AddToCache(s)
+		info["cacheHit"] = false
 	} else if err == nil {
 		WriteFromCache(s)
 		progressBar.FinishPrint("Done!")
+		info["cacheHit"] = true
 	} else {
 		fmt.Println("Error connecting to database. Please make sure you are connected to the internet and try again.")
 		fmt.Println(err)
 	}
+
+	info["duration"] = time.Now().Sub(startTime).String()
+	keenC.AddEvent("crosby command", info) // failed commands will have no info regarding duration or cache hit
 }
