@@ -60,12 +60,23 @@ popd
 
 for ARCHIVE in ./pkg/${VERSION}/dist/*; do
     ARCHIVE_NAME=$(basename ${ARCHIVE})
-
     echo Uploading: $ARCHIVE_NAME from $ARCHIVE
-    curl \
+    file=$ARCHIVE_NAME
+    bucket=download.crosby.io
+    resource="/${bucket}/${file}"
+    contentType="application/octet-stream"
+    dateValue=`date -u +"%a, %d %h %Y %T +0000"`
+    stringToSign="PUT\n\n${contentType}\n${dateValue}\n${resource}"
+    s3Key=AKIAJIVTYYJ6SVOIN45A
+    s3Secret=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
+    signature=`echo -en ${stringToSign} | openssl sha1 -hmac ${s3Secret} -binary | base64`
+    curl -k\
         -T ${ARCHIVE} \
-        -uthebyrd:${BINTRAY_API_KEY} \
-        "https://api.bintray.com/content/thebyrd/crosby/crosby/${VERSION}/${ARCHIVE_NAME}"
+        -H "Host: ${bucket}.s3.amazonaws.com" \
+        -H "Date: ${dateValue}" \
+        -H "Content-Type: ${contentType}" \
+        -H "Authorization: AWS ${s3Key}:${signature}" \
+        https://${bucket}.s3.amazonaws.com/${file}
     echo
 done
 
