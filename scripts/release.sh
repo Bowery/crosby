@@ -74,7 +74,7 @@ for ARCHIVE in ./pkg/${VERSION}/dist/*; do
         -T ${ARCHIVE} \
         -H "Host: ${bucket}.s3.amazonaws.com" \
         -H "Date: ${dateValue}" \
-        -H "Content-Type: application/octet-stream" \
+        -H "Content-Type: ${contentType}" \
         -H "Authorization: AWS ${s3Key}:${signature}" \
         https://${bucket}.s3.amazonaws.com/${file}
     echo
