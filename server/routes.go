@@ -7,11 +7,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/Bowery/gopackages/keen"
 	"github.com/bradrydzewski/go.stripe"
-	"github.com/gorilla/mux"
 )
 
 // 32 MB, same as http.
@@ -31,8 +29,6 @@ type Route struct {
 var Routes = []*Route{
 	&Route{"/", []string{"GET"}, HomeHandler},
 	&Route{"/download", []string{"GET"}, DownloadHandler},
-	&Route{"/session", []string{"POST"}, CreateSessionHandler},
-	&Route{"/session/{id}", []string{"GET"}, SessionHandler},
 	&Route{"/signup", []string{"GET"}, SignUpHandler},
 	&Route{"/thanks!", []string{"GET"}, ThanksHandler},
 	&Route{"/healthz", []string{"GET"}, HealthzHandler},
@@ -67,185 +63,6 @@ func DownloadHandler(rw http.ResponseWriter, req *http.Request) {
 	if err := RenderTemplate(rw, "download", map[string]string{"Name": "Crosby"}); err != nil {
 		RenderTemplate(rw, "error", map[string]string{"Error": err.Error()})
 	}
-}
-
-// POST /session, Creates a new user and charges them for the first year.
-func CreateSessionHandler(rw http.ResponseWriter, req *http.Request) {
-	res := NewResponder(rw, req)
-	if err := req.ParseForm(); err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-
-	name := req.PostFormValue("name")
-	email := req.PostFormValue("stripeEmail")
-	if email == "" {
-		email = req.PostFormValue("email")
-	}
-
-	u := &User{
-		Name:       name,
-		Email:      email,
-		Expiration: time.Now().Add(time.Hour * 24 * 30),
-	}
-
-	// Silent Signup from cli and not signup form. Will not charge them, but will give them a free month
-	if req.PostFormValue("stripeToken") == "" || req.PostFormValue("stripeEmail") == "" || req.PostFormValue("password") == "" {
-		if err := u.Save(); err != nil {
-			res.Body["status"] = "failed"
-			res.Body["err"] = err.Error()
-			res.Send(http.StatusBadRequest)
-			return
-		}
-		res.Body["status"] = "created"
-		res.Body["user"] = u
-		res.Send(http.StatusOK)
-		keenC.AddEvent("crosby trial new", map[string]*User{"user": u})
-		return
-	}
-
-	// Use Account Number (Id) to get user
-	id := req.PostFormValue("id")
-	if id == "" {
-		res.Body["status"] = "failed"
-		res.Body["err"] = "Missing required field: id"
-		res.Send(http.StatusBadRequest)
-		return
-	}
-	u, err := GetUser(id)
-	if err != nil {
-		res.Body["status"] = "failed"
-		res.Body["err"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-	u.Name = name
-	u.Email = email
-	u.Expiration = time.Now().Add(time.Hour * 24 * 30)
-
-	// Hash Password
-	u.Salt, err = HashToken()
-	if err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-	u.Password = HashPassword(req.PostFormValue("password"), u.Salt)
-
-	// Create Stripe Customer
-	customerParams := stripe.CustomerParams{
-		Email: u.Email,
-		Desc:  u.Name,
-		Token: req.PostFormValue("stripeToken"),
-	}
-	customer, err := stripe.Customers.Create(&customerParams)
-	if err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-
-	// Charge Stripe Customer
-	chargeParams := stripe.ChargeParams{
-		Desc:     "Crosby Annual License",
-		Amount:   2500,
-		Currency: "usd",
-		Customer: customer.Id,
-	}
-	_, err = stripe.Charges.Create(&chargeParams)
-	if err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-
-	// Update Stripe Info and Persist to Orchestrate
-	u.StripeToken = customer.Id
-	if err := u.Save(); err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-
-	keenC.AddEvent("crosby payment new", map[string]*User{"user": u})
-
-	if req.PostFormValue("html") != "" {
-		http.Redirect(rw, req, "/thanks!", 302)
-		return
-	}
-
-	res.Body["status"] = "success"
-	res.Body["user"] = u
-	res.Send(http.StatusOK)
-}
-
-// GET /session/{id}, Gets user by ID. If their license has expired it attempts
-// to charge them again. It is called everytime crosby is run.
-func SessionHandler(rw http.ResponseWriter, req *http.Request) {
-	res := NewResponder(rw, req)
-
-	id := mux.Vars(req)["id"]
-	fmt.Println("Getting user by id", id)
-	u, err := GetUser(id)
-	if err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		keenC.AddEvent("crosby session failed", map[string]string{"id": id})
-		return
-	}
-
-	if u.Expiration.After(time.Now()) {
-		res.Body["status"] = "found"
-		res.Body["user"] = u
-		res.Send(http.StatusOK)
-		keenC.AddEvent("crosby session found", map[string]*User{"user": u})
-		return
-	}
-
-	if u.StripeToken == "" {
-		res.Body["status"] = "expired"
-		res.Body["user"] = u
-		res.Send(http.StatusOK)
-		keenC.AddEvent("crosby trial expired", map[string]*User{"user": u})
-		return
-	}
-
-	// Charge them, update expiration, & respond with found.
-	// Charge Stripe Customer
-	chargeParams := stripe.ChargeParams{
-		Desc:     "Crosby Annual License",
-		Amount:   2500,
-		Currency: "usd",
-		Customer: u.StripeToken,
-	}
-	_, err = stripe.Charges.Create(&chargeParams)
-	if err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		keenC.AddEvent("crosby payment failed", map[string]*User{"user": u})
-		return
-	}
-	u.Expiration = time.Now()
-	if err := u.Save(); err != nil {
-		res.Body["status"] = "failed"
-		res.Body["error"] = err.Error()
-		res.Send(http.StatusBadRequest)
-		return
-	}
-
-	res.Body["status"] = "found"
-	res.Body["user"] = u
-	res.Send(http.StatusOK)
-	keenC.AddEvent("crosby payment recurred", map[string]*User{"user": u})
-	return
 }
 
 // GET /signup, Renders signup find. Will also handle billing
