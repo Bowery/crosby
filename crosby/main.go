@@ -1,3 +1,4 @@
+// Copyright 2014 Bowery, Inc.
 package main
 
 import (
@@ -22,6 +23,7 @@ import (
 	"time"
 
 	"github.com/Bowery/gopackages/keen"
+	"github.com/Bowery/gopackages/schemas"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 )
@@ -43,22 +45,13 @@ var (
 	saveWg        sync.WaitGroup
 	resultFileIds []bson.ObjectId
 	keenC         *keen.Client
+	configPath    string
 )
 
 type Session struct {
-	User   User   `json:"user,omitempty"`
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
-}
-
-type User struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name,omitempty"`
-	Email       string    `json:"email,omitempty"`
-	Password    string    `json:"password,omitempty"`
-	Salt        string    `json:"salt,omitempty"`
-	StripeToken string    `json:"stripeToken,omitempty"`
-	Expiration  time.Time `json:"expiration,omitempty"`
+	Developer schemas.Developer `json:"developer,omitempty"`
+	Status    string            `json:"status"`
+	Error     string            `json:"error,omitempty"`
 }
 
 type Source struct {
@@ -74,11 +67,11 @@ func init() {
 	root, _ = os.Getwd()
 	args = os.Args[1:]
 	dbHost = "io.crosby.io"
-	apiHost = "crosby.io"
+	apiHost = "broome.io"
 
 	if os.Getenv("ENV") == "development" {
 		dbHost = "localhost"
-		apiHost = "localhost:3000"
+		apiHost = "localhost:4000" // where broome runs
 	}
 
 	session, err := mgo.Dial(dbHost)
@@ -100,30 +93,30 @@ func init() {
 		WriteKey:  "8bbe0d9425a22a6c31e6da9ae3012c738ee21000b533c351a419bb0e3d08431456359d1bea654a39c2065df0b1df997ecde7e3cf49a9be0cd44341b15c1ff5523f13d26d8060373390f47bcc6a33b80e69e2b2c1101cde4ddb3d20b16a53a439a98043919e809c09c30e4856dedc963f",
 		ProjectID: "52c08d6736bf5a4a4b000005",
 	}
+
+	configPath = filepath.Join(os.Getenv(homeVar), ".crosbyconf")
 }
 
-func CurrentUser() (*User, error) {
-	user := User{}
-	configPath := filepath.Join(os.Getenv(homeVar), ".crosbyconf")
-
-	// ghetto version of "touch"
+func CurrentDeveloper() (*schemas.Developer, error) {
 	file, err := os.OpenFile(configPath, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0664)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	if err = gob.NewDecoder(file).Decode(&user); err != nil {
+	u := &schemas.Developer{}
+	if err := gob.NewDecoder(file).Decode(u); err != nil {
 		return nil, err
 	}
-	return &user, nil
+
+	return u, nil
 }
 
 //
 // Parses name and email and creates a new user.
 // Will also check server to see if the user exists and get expiration time.
 //
-func CreateUser() (*User, error) {
+func CreateDeveloper() (*schemas.Developer, error) {
 	// Get name and email from git if possible
 	// generate id
 	name, _ := exec.Command("git", "config", "user.name").Output()
@@ -139,15 +132,17 @@ func CreateUser() (*User, error) {
 		strEmail = string(email[:len(email)-1])
 	}
 
-	u := &User{
+	u := &schemas.Developer{
 		Name:  strName,
 		Email: strEmail,
+		ID:    bson.NewObjectId(),
 	}
 
-	res, err := http.PostForm("http://"+apiHost+"/session",
+	res, err := http.PostForm("http://"+apiHost+"/signup",
 		url.Values{
 			"name":  {u.Name},
 			"email": {u.Email},
+			"id":    {u.ID.Hex()},
 		})
 	if err != nil {
 		return u, err
@@ -169,16 +164,16 @@ func CreateUser() (*User, error) {
 		return u, errors.New(s.Error)
 	}
 
-	// So that the server assigned ID is persisted
-	u = &s.User
+	dev := &s.Developer
 
 	var raw bytes.Buffer
-	if err := gob.NewEncoder(&raw).Encode(u); err != nil {
-		return u, err
+
+	if err := gob.NewEncoder(&raw).Encode(&dev); err != nil {
+		return nil, err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(os.Getenv(homeVar), ".crosbyconf"), raw.Bytes(), os.ModePerm); err != nil {
-		return u, err
+	if err := ioutil.WriteFile(configPath, raw.Bytes(), os.ModePerm); err != nil {
+		return nil, err
 	}
 
 	return u, nil
@@ -192,16 +187,15 @@ func ValidateSession() error {
 		return nil
 	}
 
-	user, err := CurrentUser()
+	dev, err := CurrentDeveloper()
 	if err == io.EOF {
-		user, err = CreateUser()
+		dev, err = CreateDeveloper()
 	}
-
 	if err != nil {
 		return err
 	}
 
-	res, err := http.Get("http://" + apiHost + "/session/" + user.ID)
+	res, err := http.Get("http://" + apiHost + "/session/" + dev.ID.Hex())
 	if err != nil {
 		return err
 	}
@@ -222,9 +216,8 @@ func ValidateSession() error {
 	}
 
 	if s.Status == "expired" {
-		fmt.Println("Hi", s.User.Name, "!")
-		fmt.Println("Your free trial has expired. Please register at http://crosby.io/signup")
-		fmt.Println("Your Account Number is", s.User.ID)
+		fmt.Println("Hi", s.Developer.Name, "!")
+		fmt.Println("Your free trial has expired. Please register at http://broome.io/signup/" + s.Developer.ID)
 		return errors.New("You must register to continue using Crosby.")
 	}
 
@@ -232,10 +225,11 @@ func ValidateSession() error {
 	go func() {
 		if s.Status == "found" {
 			var raw bytes.Buffer
-			gob.NewEncoder(&raw).Encode(s.User)
+			gob.NewEncoder(&raw).Encode(s.Developer)
 			ioutil.WriteFile(filepath.Join(os.Getenv(homeVar), ".crosbyconf"), raw.Bytes(), os.ModePerm)
 		}
 	}()
+
 	return nil
 }
 
@@ -291,7 +285,7 @@ func AddToCache(s *Source) {
 			saveWg.Add(1)
 			go backoff.Retry(func() error {
 				return saveResult(path, relPath, sourceId.Hex())
-			}, backoff.NewExponentialBackoff())
+			}, backoff.NewExponentialBackOff())
 		}
 		return nil
 	}); err != nil {
