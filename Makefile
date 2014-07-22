@@ -1,5 +1,4 @@
 DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
-PACKAGES = $(shell go list ./...)
 
 all: deps format
 	@mkdir -p bin/
@@ -12,10 +11,10 @@ deps:
 
 format:
 	@echo "--> Running go fmt"
-	@go fmt $(PACKAGES)
+	@gofmt -w .
 
 test: deps
-	go list ./... | xargs -n1 go test
+	go test ./...
 
 release:
 	@bash --norc -i ./scripts/release.sh
@@ -24,4 +23,4 @@ clean:
 	rm -rf crosby/pkg
 	rm -rf bin
 
-.PNONY: all deps test format
+.PHONY: all deps test format
